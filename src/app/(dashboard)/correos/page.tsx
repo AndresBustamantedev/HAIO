@@ -11,6 +11,9 @@ import { EmailServicesTable } from "@/features/email-services/components/email-s
 import { EMAIL_SERVICE_STATUSES } from "@/features/email-services/schemas/email-service-schema";
 import { getEmailServiceStatusBadge } from "@/features/email-services/utils/status";
 import { getEmailServices } from "@/features/email-services/queries/get-email-services";
+import { CreateEmailAccountButton } from "@/features/email-accounts/components/create-email-account-button";
+import { EmailAccountsTable } from "@/features/email-accounts/components/email-accounts-table";
+import { getEmailAccounts, getEmailServiceOptions } from "@/features/email-accounts/queries/get-email-accounts";
 import { getClientOptions } from "@/lib/supabase/queries/client-options";
 import { getCurrentOrganization } from "@/lib/supabase/queries/organizations";
 
@@ -42,10 +45,14 @@ export default async function CorreosPage({ searchParams }: CorreosPageProps) {
 
   let result;
   let clientOptions;
+  let emailAccounts;
+  let serviceOptions;
   try {
-    [result, clientOptions] = await Promise.all([
+    [result, clientOptions, emailAccounts, serviceOptions] = await Promise.all([
       getEmailServices({ organizationId: organization.organizationId, search, status, clientId, page }),
       getClientOptions(organization.organizationId),
+      getEmailAccounts({ organizationId: organization.organizationId }),
+      getEmailServiceOptions(organization.organizationId),
     ]);
   } catch {
     return (
@@ -89,6 +96,17 @@ export default async function CorreosPage({ searchParams }: CorreosPageProps) {
         basePath="/correos"
         searchParams={params as Record<string, string | undefined>}
       />
+
+      <div className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Buzones de correo</h2>
+            <p className="text-sm text-muted-foreground">Cuentas individuales gestionadas por servicio.</p>
+          </div>
+          <CreateEmailAccountButton serviceOptions={serviceOptions} />
+        </div>
+        <EmailAccountsTable accounts={emailAccounts.accounts} serviceOptions={serviceOptions} />
+      </div>
     </PageContainer>
   );
 }

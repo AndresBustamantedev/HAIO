@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -186,6 +186,13 @@ export type Database = {
             foreignKeyName: "backup_configurations_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "backup_configurations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_summary"
             referencedColumns: ["client_id"]
           },
@@ -332,6 +339,13 @@ export type Database = {
             foreignKeyName: "client_contacts_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "client_contacts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_summary"
             referencedColumns: ["client_id"]
           },
@@ -392,6 +406,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_portal_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "client_portal_access_client_id_fkey"
@@ -499,6 +520,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_services_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "client_services_client_id_fkey"
@@ -672,6 +700,13 @@ export type Database = {
             referencedRelation: "credentials"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "credential_access_logs_credential_id_fkey"
+            columns: ["credential_id"]
+            isOneToOne: false
+            referencedRelation: "v_credentials_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       credentials: {
@@ -679,9 +714,11 @@ export type Database = {
           client_id: string | null
           created_at: string
           created_by: string | null
+          credential_mode: string
           deleted_at: string | null
           domain_id: string | null
           email_account_id: string | null
+          encryption_key_version: number
           expires_at: string | null
           hosting_account_id: string | null
           id: string
@@ -692,19 +729,25 @@ export type Database = {
           notes: string | null
           organization_id: string
           project_id: string | null
+          provider_account_id: string | null
+          secret_ciphertext: string | null
           secret_reference: string | null
+          secret_version: number
           type: Database["public"]["Enums"]["credential_type"]
           updated_at: string
           updated_by: string | null
           username: string | null
+          website_installation_id: string | null
         }
         Insert: {
           client_id?: string | null
           created_at?: string
           created_by?: string | null
+          credential_mode?: string
           deleted_at?: string | null
           domain_id?: string | null
           email_account_id?: string | null
+          encryption_key_version?: number
           expires_at?: string | null
           hosting_account_id?: string | null
           id?: string
@@ -715,19 +758,25 @@ export type Database = {
           notes?: string | null
           organization_id: string
           project_id?: string | null
+          provider_account_id?: string | null
+          secret_ciphertext?: string | null
           secret_reference?: string | null
+          secret_version?: number
           type: Database["public"]["Enums"]["credential_type"]
           updated_at?: string
           updated_by?: string | null
           username?: string | null
+          website_installation_id?: string | null
         }
         Update: {
           client_id?: string | null
           created_at?: string
           created_by?: string | null
+          credential_mode?: string
           deleted_at?: string | null
           domain_id?: string | null
           email_account_id?: string | null
+          encryption_key_version?: number
           expires_at?: string | null
           hosting_account_id?: string | null
           id?: string
@@ -738,11 +787,15 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           project_id?: string | null
+          provider_account_id?: string | null
+          secret_ciphertext?: string | null
           secret_reference?: string | null
+          secret_version?: number
           type?: Database["public"]["Enums"]["credential_type"]
           updated_at?: string
           updated_by?: string | null
           username?: string | null
+          website_installation_id?: string | null
         }
         Relationships: [
           {
@@ -751,6 +804,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "credentials_client_id_fkey"
@@ -799,6 +859,20 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_website_installation_id_fkey"
+            columns: ["website_installation_id"]
+            isOneToOne: false
+            referencedRelation: "website_installations"
             referencedColumns: ["id"]
           },
         ]
@@ -882,6 +956,13 @@ export type Database = {
             foreignKeyName: "documents_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_summary"
             referencedColumns: ["client_id"]
           },
@@ -939,12 +1020,14 @@ export type Database = {
           domain_name: string
           expires_on: string | null
           id: string
+          internal_cost: number | null
           managed_by_us: boolean
           nameservers: string[]
           notes: string | null
           organization_id: string
           privacy_enabled: boolean
           project_id: string | null
+          provider_account_id: string | null
           registered_on: string | null
           registrar_account_reference: string | null
           registrar_name: string | null
@@ -962,12 +1045,14 @@ export type Database = {
           domain_name: string
           expires_on?: string | null
           id?: string
+          internal_cost?: number | null
           managed_by_us?: boolean
           nameservers?: string[]
           notes?: string | null
           organization_id: string
           privacy_enabled?: boolean
           project_id?: string | null
+          provider_account_id?: string | null
           registered_on?: string | null
           registrar_account_reference?: string | null
           registrar_name?: string | null
@@ -985,12 +1070,14 @@ export type Database = {
           domain_name?: string
           expires_on?: string | null
           id?: string
+          internal_cost?: number | null
           managed_by_us?: boolean
           nameservers?: string[]
           notes?: string | null
           organization_id?: string
           privacy_enabled?: boolean
           project_id?: string | null
+          provider_account_id?: string | null
           registered_on?: string | null
           registrar_account_reference?: string | null
           registrar_name?: string | null
@@ -1006,6 +1093,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "domains_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "domains_client_id_fkey"
@@ -1033,6 +1127,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "domains_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -1171,6 +1272,13 @@ export type Database = {
             foreignKeyName: "email_messages_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "email_messages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_summary"
             referencedColumns: ["client_id"]
           },
@@ -1203,10 +1311,12 @@ export type Database = {
           domain_id: string | null
           expires_on: string | null
           id: string
+          internal_cost: number | null
           notes: string | null
           organization_id: string
           plan_name: string | null
           project_id: string | null
+          provider_account_id: string | null
           provider_name: string
           renewal_price: number | null
           starts_on: string | null
@@ -1225,10 +1335,12 @@ export type Database = {
           domain_id?: string | null
           expires_on?: string | null
           id?: string
+          internal_cost?: number | null
           notes?: string | null
           organization_id: string
           plan_name?: string | null
           project_id?: string | null
+          provider_account_id?: string | null
           provider_name: string
           renewal_price?: number | null
           starts_on?: string | null
@@ -1247,10 +1359,12 @@ export type Database = {
           domain_id?: string | null
           expires_on?: string | null
           id?: string
+          internal_cost?: number | null
           notes?: string | null
           organization_id?: string
           plan_name?: string | null
           project_id?: string | null
+          provider_account_id?: string | null
           provider_name?: string
           renewal_price?: number | null
           starts_on?: string | null
@@ -1264,6 +1378,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_services_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "email_services_client_id_fkey"
@@ -1300,6 +1421,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "email_services_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       hosting_accounts: {
@@ -1315,11 +1443,14 @@ export type Database = {
           deleted_at: string | null
           expires_on: string | null
           id: string
+          internal_cost: number | null
+          is_shared: boolean
           notes: string | null
           organization_id: string
           panel_url: string | null
           plan_name: string | null
           project_id: string | null
+          provider_account_id: string | null
           provider_name: string
           renewal_price: number | null
           server_hostname: string | null
@@ -1341,11 +1472,14 @@ export type Database = {
           deleted_at?: string | null
           expires_on?: string | null
           id?: string
+          internal_cost?: number | null
+          is_shared?: boolean
           notes?: string | null
           organization_id: string
           panel_url?: string | null
           plan_name?: string | null
           project_id?: string | null
+          provider_account_id?: string | null
           provider_name: string
           renewal_price?: number | null
           server_hostname?: string | null
@@ -1367,11 +1501,14 @@ export type Database = {
           deleted_at?: string | null
           expires_on?: string | null
           id?: string
+          internal_cost?: number | null
+          is_shared?: boolean
           notes?: string | null
           organization_id?: string
           panel_url?: string | null
           plan_name?: string | null
           project_id?: string | null
+          provider_account_id?: string | null
           provider_name?: string
           renewal_price?: number | null
           server_hostname?: string | null
@@ -1388,6 +1525,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosting_accounts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "hosting_accounts_client_id_fkey"
@@ -1412,6 +1556,118 @@ export type Database = {
           },
           {
             foreignKeyName: "hosting_accounts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosting_accounts_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosting_sites: {
+        Row: {
+          client_id: string
+          created_at: string
+          deleted_at: string | null
+          document_root: string | null
+          domain_id: string | null
+          hosting_account_id: string
+          id: string
+          is_primary: boolean
+          notes: string | null
+          organization_id: string
+          project_id: string | null
+          site_label: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          deleted_at?: string | null
+          document_root?: string | null
+          domain_id?: string | null
+          hosting_account_id: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          organization_id: string
+          project_id?: string | null
+          site_label: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          document_root?: string | null
+          domain_id?: string | null
+          hosting_account_id?: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          organization_id?: string
+          project_id?: string | null
+          site_label?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosting_sites_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosting_sites_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "hosting_sites_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_summary"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "hosting_sites_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosting_sites_hosting_account_id_fkey"
+            columns: ["hosting_account_id"]
+            isOneToOne: false
+            referencedRelation: "hosting_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosting_sites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hosting_sites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "hosting_sites_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -1584,6 +1840,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "invoices_client_id_fkey"
@@ -1940,6 +2203,13 @@ export type Database = {
             foreignKeyName: "payments_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_summary"
             referencedColumns: ["client_id"]
           },
@@ -2109,6 +2379,13 @@ export type Database = {
             foreignKeyName: "projects_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_summary"
             referencedColumns: ["client_id"]
           },
@@ -2121,6 +2398,118 @@ export type Database = {
           },
           {
             foreignKeyName: "projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
+      provider_accounts: {
+        Row: {
+          account_reference: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          label: string
+          notes: string | null
+          organization_id: string
+          provider_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_reference?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          label: string
+          notes?: string | null
+          organization_id: string
+          provider_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_reference?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          label?: string
+          notes?: string | null
+          organization_id?: string
+          provider_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_accounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_accounts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "provider_accounts_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      providers: {
+        Row: {
+          category: Database["public"]["Enums"]["provider_category"]
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          support_url: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["provider_category"]
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          support_url?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["provider_category"]
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          support_url?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "providers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "providers_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "v_dashboard_metrics"
@@ -2271,6 +2660,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "quotes_client_id_fkey"
@@ -2483,6 +2879,13 @@ export type Database = {
             foreignKeyName: "subscriptions_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_summary"
             referencedColumns: ["client_id"]
           },
@@ -2631,6 +3034,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "tasks_client_id_fkey"
@@ -2790,6 +3200,13 @@ export type Database = {
             foreignKeyName: "tickets_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "tickets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
             referencedRelation: "v_client_summary"
             referencedColumns: ["client_id"]
           },
@@ -2823,8 +3240,179 @@ export type Database = {
           },
         ]
       }
+      website_installations: {
+        Row: {
+          admin_url: string | null
+          client_id: string
+          cms_type: string
+          cms_version: string | null
+          created_at: string
+          deleted_at: string | null
+          domain_id: string | null
+          environment: string
+          hosting_site_id: string | null
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          project_id: string | null
+          public_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_url?: string | null
+          client_id: string
+          cms_type?: string
+          cms_version?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          domain_id?: string | null
+          environment?: string
+          hosting_site_id?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          project_id?: string | null
+          public_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_url?: string | null
+          client_id?: string
+          cms_type?: string
+          cms_version?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          domain_id?: string | null
+          environment?: string
+          hosting_site_id?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          project_id?: string | null
+          public_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_installations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_installations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "website_installations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_summary"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "website_installations_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_installations_hosting_site_id_fkey"
+            columns: ["hosting_site_id"]
+            isOneToOne: false
+            referencedRelation: "hosting_sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_installations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_installations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "website_installations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
+      v_client_infrastructure: {
+        Row: {
+          client_id: string | null
+          credential_count: number | null
+          domain_count: number | null
+          domains_internal_cost: number | null
+          email_service_count: number | null
+          hosting_count: number | null
+          hosting_internal_cost: number | null
+          mailbox_count: number | null
+          organization_id: string | null
+          website_installation_count: number | null
+        }
+        Insert: {
+          client_id?: string | null
+          credential_count?: never
+          domain_count?: never
+          domains_internal_cost?: never
+          email_service_count?: never
+          hosting_count?: never
+          hosting_internal_cost?: never
+          mailbox_count?: never
+          organization_id?: string | null
+          website_installation_count?: never
+        }
+        Update: {
+          client_id?: string | null
+          credential_count?: never
+          domain_count?: never
+          domains_internal_cost?: never
+          email_service_count?: never
+          hosting_count?: never
+          hosting_internal_cost?: never
+          mailbox_count?: never
+          organization_id?: string | null
+          website_installation_count?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
       v_client_summary: {
         Row: {
           client_id: string | null
@@ -2873,6 +3461,171 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_dashboard_metrics"
             referencedColumns: ["organization_id"]
+          },
+        ]
+      }
+      v_credentials_safe: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          created_by: string | null
+          credential_mode: string | null
+          deleted_at: string | null
+          domain_id: string | null
+          email_account_id: string | null
+          encryption_key_version: number | null
+          expires_at: string | null
+          hosting_account_id: string | null
+          id: string | null
+          is_shared_with_client: boolean | null
+          label: string | null
+          last_verified_at: string | null
+          login_url: string | null
+          notes: string | null
+          organization_id: string | null
+          project_id: string | null
+          provider_account_id: string | null
+          secret_reference: string | null
+          secret_version: number | null
+          type: Database["public"]["Enums"]["credential_type"] | null
+          updated_at: string | null
+          updated_by: string | null
+          username: string | null
+          website_installation_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credential_mode?: string | null
+          deleted_at?: string | null
+          domain_id?: string | null
+          email_account_id?: string | null
+          encryption_key_version?: number | null
+          expires_at?: string | null
+          hosting_account_id?: string | null
+          id?: string | null
+          is_shared_with_client?: boolean | null
+          label?: string | null
+          last_verified_at?: string | null
+          login_url?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          project_id?: string | null
+          provider_account_id?: string | null
+          secret_reference?: string | null
+          secret_version?: number | null
+          type?: Database["public"]["Enums"]["credential_type"] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          username?: string | null
+          website_installation_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          credential_mode?: string | null
+          deleted_at?: string | null
+          domain_id?: string | null
+          email_account_id?: string | null
+          encryption_key_version?: number | null
+          expires_at?: string | null
+          hosting_account_id?: string | null
+          id?: string | null
+          is_shared_with_client?: boolean | null
+          label?: string | null
+          last_verified_at?: string | null
+          login_url?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          project_id?: string | null
+          provider_account_id?: string | null
+          secret_reference?: string | null
+          secret_version?: number | null
+          type?: Database["public"]["Enums"]["credential_type"] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          username?: string | null
+          website_installation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credentials_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "credentials_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_summary"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "credentials_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "domains"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_email_account_id_fkey"
+            columns: ["email_account_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_hosting_account_id_fkey"
+            columns: ["hosting_account_id"]
+            isOneToOne: false
+            referencedRelation: "hosting_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "credentials_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credentials_website_installation_id_fkey"
+            columns: ["website_installation_id"]
+            isOneToOne: false
+            referencedRelation: "website_installations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2927,6 +3680,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
           },
           {
             foreignKeyName: "invoices_client_id_fkey"
@@ -3105,6 +3865,14 @@ export type Database = {
         | "redesign"
         | "seo"
         | "consulting"
+        | "other"
+      provider_category:
+        | "registrar"
+        | "hosting"
+        | "email"
+        | "dns"
+        | "cms"
+        | "cloud"
         | "other"
       quote_status:
         | "draft"
@@ -3405,6 +4173,15 @@ export const Constants = {
         "redesign",
         "seo",
         "consulting",
+        "other",
+      ],
+      provider_category: [
+        "registrar",
+        "hosting",
+        "email",
+        "dns",
+        "cms",
+        "cloud",
         "other",
       ],
       quote_status: [

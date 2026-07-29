@@ -38,7 +38,7 @@ function LoginForm() {
       }
 
       toast.success("Sesión iniciada.")
-      router.push("/dashboard")
+      router.push("/")
       router.refresh()
     })
   }

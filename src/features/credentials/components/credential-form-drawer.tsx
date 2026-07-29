@@ -7,13 +7,13 @@ import { FormDrawer } from "@/components/common/form-drawer"
 import { CredentialForm } from "@/features/credentials/components/credential-form"
 import { createCredential } from "@/features/credentials/actions/create-credential"
 import { updateCredential } from "@/features/credentials/actions/update-credential"
-import type { ClientOption, CredentialWithClient } from "@/features/credentials/types"
+import type { ClientOption, CredentialSafeWithClient } from "@/features/credentials/types"
 
 type CredentialFormDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   clientOptions: ClientOption[]
-  credential?: CredentialWithClient
+  credential?: CredentialSafeWithClient
 }
 
 function CredentialFormDrawer({ open, onOpenChange, clientOptions, credential }: CredentialFormDrawerProps) {
@@ -25,26 +25,26 @@ function CredentialFormDrawer({ open, onOpenChange, clientOptions, credential }:
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? "Editar credencial" : "Nueva credencial"}
-      description={isEdit ? credential.label : "Registra una credencial de acceso."}
+      description={isEdit ? (credential.label ?? "Editar credencial") : "Registra una credencial de acceso."}
     >
       <CredentialForm
         clientOptions={clientOptions}
         defaultValues={
           credential
             ? {
-                label: credential.label,
-                type: credential.type,
+                label: credential.label ?? "",
+                type: credential.type ?? "other",
                 client_id: credential.client_id ?? "",
                 username: credential.username ?? "",
                 login_url: credential.login_url ?? "",
                 secret_reference: credential.secret_reference ?? "",
                 expires_at: credential.expires_at ?? "",
-                is_shared_with_client: credential.is_shared_with_client,
+                is_shared_with_client: credential.is_shared_with_client ?? false,
                 notes: credential.notes ?? "",
               }
             : undefined
         }
-        onSubmit={(values) => (isEdit ? updateCredential(credential.id, values) : createCredential(values))}
+        onSubmit={(values) => (isEdit ? updateCredential(credential.id!, values) : createCredential(values))}
         onSuccess={() => {
           toast.success(isEdit ? "Credencial actualizada." : "Credencial creada.")
           onOpenChange(false)

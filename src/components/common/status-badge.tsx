@@ -40,5 +40,7 @@ function StatusBadge({ tone, label, className }: StatusBadgeProps) {
   )
 }
 
+export type StatusBadgeTone = NonNullable<VariantProps<typeof statusBadgeVariants>["tone"]>
+
 export { StatusBadge, statusBadgeVariants }
 export type { StatusBadgeProps }

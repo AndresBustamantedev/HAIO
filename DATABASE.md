@@ -150,6 +150,7 @@ billing_interval: weekly, monthly, quarterly, semiannual, annual, biennial, cust
 domain_status: pending, active, expired, transferred, cancelled, unknown
 hosting_status: pending, active, suspended, expired, cancelled
 credential_type: website_admin, hosting_panel, domain_registrar, ftp, sftp, ssh, database, email, api, social_media, analytics, other
+provider_category: registrar, hosting, email, dns, cms, cloud, other   ← (0016)
 quote_status: draft, sent, viewed, accepted, rejected, expired, cancelled
 invoice_status: draft, issued, sent, viewed, partially_paid, paid, overdue, void, refunded
 payment_status: pending, processing, succeeded, failed, cancelled, refunded, partially_refunded
@@ -164,6 +165,8 @@ notification_channel: in_app, email, push, webhook
 backup_status: pending, running, successful, failed, cancelled
 document_category: contract, quote, invoice, receipt, brief, report, credential_export, legal, other
 ```
+
+`credential_mode` (columna texto con CHECK en `credentials`): `encrypted`, `external_reference`, `none`.
 
 ---
 
@@ -344,19 +347,23 @@ Restricción única: `unique (organization_id, code)`.
 | registrar_account_reference | text | nullable |
 | registered_on | date | nullable |
 | expires_on | date | nullable |
-| renewal_price | numeric(12,2) | nullable, CHECK >= 0 |
+| renewal_price | numeric(12,2) | nullable — precio relevante para el cliente |
 | currency_code | char(3) | NOT NULL, default `EUR` |
 | auto_renew | boolean | NOT NULL, default false |
 | managed_by_us | boolean | NOT NULL, default true |
 | nameservers | text[] | NOT NULL, default `{}` |
 | privacy_enabled | boolean | NOT NULL, default false |
 | transfer_lock_enabled | boolean | nullable |
+| provider_account_id | uuid | FK → provider_accounts.id, nullable ← (0016) |
+| internal_cost | numeric(12,2) | nullable, CHECK >= 0 — coste real que paga HAIO ← (0016) |
 | notes | text | nullable |
 | created_at | timestamptz | NOT NULL |
 | updated_at | timestamptz | NOT NULL |
 | deleted_at | timestamptz | nullable |
 
 Crear unicidad parcial por organización y dominio activo, e índices sobre `expires_on`, `status` y `client_id`.
+
+`renewal_price` es el precio cobrado al cliente. `internal_cost` es el coste que paga HAIO al proveedor (separación coste/precio).
 
 ### hosting_accounts
 
@@ -374,20 +381,45 @@ Crear unicidad parcial por organización y dominio activo, e índices sobre `exp
 | server_ip | inet | nullable |
 | starts_on | date | nullable |
 | expires_on | date | nullable |
-| renewal_price | numeric(12,2) | nullable |
+| renewal_price | numeric(12,2) | nullable — precio al cliente |
 | currency_code | char(3) | NOT NULL, default `EUR` |
 | billing_interval | billing_interval | nullable |
 | auto_renew | boolean | NOT NULL, default false |
 | storage_limit_mb | bigint | nullable, CHECK >= 0 |
 | bandwidth_limit_mb | bigint | nullable, CHECK >= 0 |
+| provider_account_id | uuid | FK → provider_accounts.id, nullable ← (0016) |
+| internal_cost | numeric(12,2) | nullable, CHECK >= 0 ← (0016) |
+| is_shared | boolean | NOT NULL, default false — si alojan varios clientes ← (0016) |
 | notes | text | nullable |
 | created_at | timestamptz | NOT NULL |
 | updated_at | timestamptz | NOT NULL |
 | deleted_at | timestamptz | nullable |
 
+Cuando `is_shared = true`, los sitios individuales se registran en `hosting_sites`.
+
+### hosting_sites  ← (0016)
+
+Cada sitio alojado dentro de una cuenta de hosting. Permite representar hosting compartido entre clientes sin duplicar el contrato.
+
+| Columna | Tipo | Reglas |
+|---|---|---|
+| id | uuid | PK |
+| organization_id | uuid | FK, NOT NULL |
+| hosting_account_id | uuid | FK → hosting_accounts.id, NOT NULL |
+| client_id | uuid | FK → clients.id, NOT NULL |
+| project_id | uuid | FK, nullable |
+| domain_id | uuid | FK → domains.id, nullable |
+| site_label | text | NOT NULL |
+| document_root | text | nullable |
+| is_primary | boolean | NOT NULL, default false |
+| notes | text | nullable |
+| created_at / updated_at / deleted_at | timestamptz | estándar |
+
 ### email_services
 
 Incluye organización, cliente, proyecto, proveedor, dominio, plan, estado, fechas, renovación, moneda, autorrenovación y timestamps.
+
+Columnas añadidas en 0016: `provider_account_id uuid`, `internal_cost numeric(12,2)`.
 
 ### email_accounts
 
@@ -395,7 +427,68 @@ Incluye organización, servicio de correo, dirección, nombre visible, cuota, es
 
 ---
 
-## 9. Credenciales y secretos
+## 9. Proveedores e inventario de infraestructura  ← (0016)
+
+### providers
+
+Catálogo normalizado de empresas proveedoras (Hostinger, Zoho, Cloudflare…).
+
+| Columna | Tipo | Reglas |
+|---|---|---|
+| id | uuid | PK |
+| organization_id | uuid | FK, NOT NULL |
+| name | text | NOT NULL |
+| category | provider_category | NOT NULL, default `other` |
+| website | text | nullable |
+| support_url | text | nullable |
+| notes | text | nullable |
+| created_at / updated_at / deleted_at | timestamptz | estándar |
+
+Unicidad parcial: `(organization_id, lower(name))` donde `deleted_at is null`.
+
+### provider_accounts
+
+Cuenta concreta que HAIO usa dentro de un proveedor. Puede administrar recursos de varios clientes.
+
+| Columna | Tipo | Reglas |
+|---|---|---|
+| id | uuid | PK |
+| organization_id | uuid | FK, NOT NULL |
+| provider_id | uuid | FK → providers.id, NOT NULL |
+| label | text | NOT NULL — descripción legible (ej. "Cuenta reseller OVH") |
+| account_reference | text | nullable — nº de cuenta, login de portal, no sensible |
+| notes | text | nullable |
+| created_at / updated_at / deleted_at | timestamptz | estándar |
+
+Las credenciales de acceso a esta cuenta se guardan en `credentials.provider_account_id` (FK inversa).
+
+RLS: solo `owner`, `admin` y `manager` pueden ver y modificar.
+
+### website_installations
+
+Instalación CMS/web asociada a un cliente, dominio y hosting.
+
+| Columna | Tipo | Reglas |
+|---|---|---|
+| id | uuid | PK |
+| organization_id | uuid | FK, NOT NULL |
+| client_id | uuid | FK, NOT NULL |
+| project_id | uuid | FK, nullable |
+| domain_id | uuid | FK, nullable |
+| hosting_site_id | uuid | FK → hosting_sites.id, nullable |
+| name | text | NOT NULL |
+| public_url | text | nullable |
+| admin_url | text | nullable |
+| cms_type | text | CHECK: `wordpress\|shopify\|prestashop\|joomla\|drupal\|magento\|woocommerce\|custom\|other` |
+| cms_version | text | nullable |
+| environment | text | CHECK: `production\|staging\|development\|testing`, default `production` |
+| status | text | CHECK: `active\|maintenance\|inactive\|archived`, default `active` |
+| notes | text | nullable |
+| created_at / updated_at / deleted_at | timestamptz | estándar |
+
+---
+
+## 10. Credenciales y secretos
 
 No guardar contraseñas, tokens API, claves privadas ni secretos en texto plano dentro de tablas públicas.
 
@@ -410,22 +503,35 @@ No guardar contraseñas, tokens API, claves privadas ni secretos en texto plano 
 | domain_id | uuid | FK, nullable |
 | hosting_account_id | uuid | FK, nullable |
 | email_account_id | uuid | FK, nullable |
+| provider_account_id | uuid | FK → provider_accounts.id, nullable ← (0016) |
+| website_installation_id | uuid | FK → website_installations.id, nullable ← (0016) |
 | type | credential_type | NOT NULL |
 | label | text | NOT NULL |
 | username | text | nullable |
 | login_url | text | nullable |
-| secret_reference | text | nullable |
+| secret_reference | text | nullable — puntero a gestor externo (modo `external_reference`) |
+| secret_ciphertext | bytea | nullable — secreto cifrado AES-256-GCM ← (0016) |
+| credential_mode | text | NOT NULL, default `none` — valores: `encrypted`, `external_reference`, `none` ← (0016) |
+| secret_version | integer | NOT NULL, default 1 ← (0016) |
+| encryption_key_version | integer | NOT NULL, default 1 ← (0016) |
 | notes | text | nullable |
 | is_shared_with_client | boolean | NOT NULL, default false |
 | last_verified_at | timestamptz | nullable |
 | expires_at | timestamptz | nullable |
-| created_by | uuid | nullable |
-| updated_by | uuid | nullable |
-| created_at | timestamptz | NOT NULL |
-| updated_at | timestamptz | NOT NULL |
-| deleted_at | timestamptz | nullable |
+| created_by / updated_by | uuid | nullable |
+| created_at / updated_at / deleted_at | timestamptz | estándar |
 
-`secret_reference` solo contiene un identificador de Vault o de un gestor externo.
+**Constraint de coherencia** `credentials_mode_coherence`:
+- `encrypted` → `secret_ciphertext IS NOT NULL`, `secret_reference` vacío/nulo
+- `external_reference` → `secret_reference` no vacío, `secret_ciphertext IS NULL`
+- `none` → ambos nulos/vacíos
+
+**Modelo de cifrado:**
+- `secret_ciphertext` almacena el secreto cifrado con AES-256-GCM.
+- La clave vive **únicamente** en `process.env.CREDENTIAL_ENCRYPTION_KEY` (servidor Next.js).
+- **No existe ninguna función SQL que descifre.** El descifrado ocurre exclusivamente en Server Actions.
+- Los listados deben usar `v_credentials_safe` (vista sin `secret_ciphertext`).
+- El flujo "Revelar" es: Server Action → SELECT `secret_ciphertext` (tabla raw, servidor) → INSERT log → descifrar → devolver solo para esa petición.
 
 ### credential_access_logs
 
@@ -650,12 +756,36 @@ Las políticas deben reflejar organización, cliente, visibilidad y rol. `backup
 
 ---
 
-## 22. Vistas recomendadas
+## 23. Vistas recomendadas
 
 - `v_dashboard_metrics`.
 - `v_upcoming_renewals`.
 - `v_invoice_balances`.
 - `v_client_summary`.
+- `v_credentials_safe` — igual que `credentials` pero sin `secret_ciphertext`. **Usar siempre en listados.** ← (0016)
+- `v_client_infrastructure` — agregado por cliente: conteo y coste de dominios, hosting, correos, instalaciones web y credenciales. ← (0016)
+
+Todas las vistas usan `WITH (security_invoker = true)` para que RLS se aplique con el rol del usuario llamante, no del propietario de la vista.
+
+---
+
+## 24. Migraciones
+
+| # | Nombre | Contenido |
+|---|---|---|
+| 0001 | extensions_and_enums | pgcrypto, citext, pg_trgm; todos los enums |
+| 0002 | auth_and_organizations | set_updated_at, organizations, organization_members, profiles |
+| 0003 | clients_and_projects | clients, client_contacts, client_portal_access, projects, services, client_services |
+| 0004 | infrastructure | domains, hosting_accounts, email_services, email_accounts |
+| 0005 | credentials | credentials, credential_access_logs, forbid_modify() |
+| 0006 | quotes_invoices_payments | quotes, quote_items, invoices, invoice_items, payments, subscriptions |
+| 0007 | documents_and_backups | documents, backup_configurations, backup_records |
+| 0008 | tasks_tickets_notifications | tasks, task_comments, tickets, ticket_messages, notifications, notification_deliveries, email_messages |
+| 0009 | audit_settings_and_views | activity_logs, audit_logs, organization_settings, vistas v_ |
+| 0010 | rls_policies | RLS enable + todas las políticas de acceso |
+| 0011 | storage_policies | Buckets de Storage y políticas |
+| 0012–0015 | security_hardening + fixes | Funciones has_organization_role, is_organization_member, can_access_client, next_sequence_value; revocaciones y correcciones |
+| 0016 | infrastructure_inventory | providers, provider_accounts, hosting_sites, website_installations; columnas nuevas en domains/hosting_accounts/email_services/credentials; cifrado; vistas v_credentials_safe y v_client_infrastructure |
 
 Las vistas no deben eludir RLS accidentalmente.
 

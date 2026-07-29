@@ -15,13 +15,13 @@ import {
 import { DeleteDialog } from "@/components/common/delete-dialog"
 import { CredentialFormDrawer } from "@/features/credentials/components/credential-form-drawer"
 import { deleteCredential } from "@/features/credentials/actions/delete-credential"
-import type { ClientOption, CredentialWithClient } from "@/features/credentials/types"
+import type { ClientOption, CredentialSafeWithClient } from "@/features/credentials/types"
 
 function CredentialRowActions({
   credential,
   clientOptions,
 }: {
-  credential: CredentialWithClient
+  credential: CredentialSafeWithClient
   clientOptions: ClientOption[]
 }) {
   const router = useRouter()
@@ -51,9 +51,9 @@ function CredentialRowActions({
       <DeleteDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        itemLabel={credential.label}
+        itemLabel={credential.label ?? "credencial"}
         onConfirm={async () => {
-          const result = await deleteCredential(credential.id)
+          const result = await deleteCredential(credential.id!)
           if (result.error) {
             toast.error(result.error)
             return

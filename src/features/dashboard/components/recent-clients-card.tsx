@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/common/empty-state"
 import { StatusBadge } from "@/components/common/status-badge"
 import { getClientStatusBadge } from "@/features/clients/utils/status"
-import type { RecentClient } from "@/features/dashboard/queries/get-dashboard-data"
+import type { Database } from "@/types/database.types"
+type RecentClient = { id: string; display_name: string; status: Database["public"]["Enums"]["client_status"] | null; created_at: string }
 
 function RecentClientsCard({ clients }: { clients: RecentClient[] }) {
   return (

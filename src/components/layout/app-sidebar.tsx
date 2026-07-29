@@ -19,11 +19,12 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
-/**
- * Desktop/tablet sidebar. Collapses to icon-only; the active route is
- * highlighted by comparing the current pathname against each nav item.
- */
-function AppSidebar() {
+type AppSidebarProps = {
+  organizationName?: string | null
+  userEmail?: string | null
+}
+
+function AppSidebar({ organizationName, userEmail }: AppSidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = React.useState(false)
 
@@ -81,16 +82,40 @@ function AppSidebar() {
           })}
         </nav>
 
-        <div className="border-t border-sidebar-border p-2">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="w-full justify-center"
-            onClick={() => setCollapsed((value) => !value)}
-            aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
-          >
-            {collapsed ? <PanelLeftIcon /> : <PanelLeftCloseIcon />}
-          </Button>
+        <div className="border-t border-sidebar-border">
+          {(organizationName || userEmail) && (
+            <div className={cn(
+              "flex items-center gap-2.5 px-3 py-3",
+              collapsed && "justify-center"
+            )}>
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground text-xs font-bold">
+                {(organizationName ?? userEmail ?? "?")[0].toUpperCase()}
+              </div>
+              {!collapsed && (
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-sidebar-accent-foreground leading-tight">
+                    {organizationName ?? "Mi organización"}
+                  </p>
+                  {userEmail && (
+                    <p className="truncate text-xs text-sidebar-foreground/50 leading-tight">
+                      {userEmail}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="p-2 pt-0">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="w-full justify-center text-sidebar-foreground/50 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent"
+              onClick={() => setCollapsed((value) => !value)}
+              aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
+            >
+              {collapsed ? <PanelLeftIcon /> : <PanelLeftCloseIcon />}
+            </Button>
+          </div>
         </div>
       </aside>
     </TooltipProvider>

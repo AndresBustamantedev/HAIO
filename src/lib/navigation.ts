@@ -19,6 +19,8 @@ import {
   TicketIcon,
   BellIcon,
   SettingsIcon,
+  BuildingIcon,
+  MonitorIcon,
 } from "lucide-react"
 
 export type NavItem = {
@@ -41,6 +43,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Dominios", href: "/dominios", icon: GlobeIcon },
   { label: "Hosting", href: "/hosting", icon: ServerIcon },
   { label: "Correos", href: "/correos", icon: MailIcon },
+  { label: "Proveedores", href: "/proveedores", icon: BuildingIcon },
+  { label: "Sitios web", href: "/sitios-web", icon: MonitorIcon },
   { label: "Credenciales", href: "/credenciales", icon: KeyRoundIcon },
   { label: "Presupuestos", href: "/presupuestos", icon: FileTextIcon },
   { label: "Facturas", href: "/facturas", icon: ReceiptTextIcon },

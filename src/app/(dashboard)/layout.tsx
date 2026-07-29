@@ -32,7 +32,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
-      <AppSidebar />
+      <AppSidebar organizationName={organization?.organizationName} userEmail={user?.email} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader

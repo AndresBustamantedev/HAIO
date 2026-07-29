@@ -1,12 +1,23 @@
-import { redirect } from "next/navigation";
+import { redirect } from "next/navigation"
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server"
+import { isStaffMember, getPortalSession } from "@/lib/supabase/queries/portal"
 
 export default async function Home() {
-  const supabase = await createClient();
+  const supabase = await createClient()
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
-  redirect(user ? "/dashboard" : "/login");
+  if (!user) {
+    redirect("/login")
+  }
+
+  const [staff, portalSession] = await Promise.all([isStaffMember(), getPortalSession()])
+
+  if (staff) redirect("/dashboard")
+  if (portalSession) redirect("/portal")
+
+  // Authenticated but no membership and no portal access → back to login
+  redirect("/login")
 }

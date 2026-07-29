@@ -1,7 +1,7 @@
 import "server-only"
 
 import { createClient } from "@/lib/supabase/server"
-import type { CredentialWithClient } from "@/features/credentials/types"
+import type { CredentialSafeWithClient } from "@/features/credentials/types"
 
 export type GetCredentialsParams = {
   organizationId: string
@@ -13,16 +13,15 @@ export type GetCredentialsParams = {
 }
 
 export type GetCredentialsResult = {
-  credentials: CredentialWithClient[]
+  credentials: CredentialSafeWithClient[]
   total: number
   page: number
   pageSize: number
 }
 
 /**
- * Paginated, filtered credential list. Note: this table never stores actual
- * secret values — only a `secret_reference` pointer into an external vault —
- * so there is nothing sensitive to mask or leak to the client bundle.
+ * Paginated, filtered credential list.
+ * Uses v_credentials_safe — never exposes secret_ciphertext.
  */
 export async function getCredentials(params: GetCredentialsParams): Promise<GetCredentialsResult> {
   const supabase = await createClient()
@@ -30,7 +29,7 @@ export async function getCredentials(params: GetCredentialsParams): Promise<GetC
   const pageSize = params.pageSize ?? 20
 
   let query = supabase
-    .from("credentials")
+    .from("v_credentials_safe")
     .select("*, clients(id, display_name)", { count: "exact" })
     .eq("organization_id", params.organizationId)
     .is("deleted_at", null)
@@ -41,7 +40,7 @@ export async function getCredentials(params: GetCredentialsParams): Promise<GetC
   }
 
   if (params.type) {
-    query = query.eq("type", params.type as CredentialWithClient["type"])
+    query = query.eq("type", params.type as never)
   }
 
   if (params.clientId) {
@@ -58,7 +57,7 @@ export async function getCredentials(params: GetCredentialsParams): Promise<GetC
   }
 
   return {
-    credentials: (data as CredentialWithClient[]) ?? [],
+    credentials: (data as CredentialSafeWithClient[]) ?? [],
     total: count ?? 0,
     page,
     pageSize,
