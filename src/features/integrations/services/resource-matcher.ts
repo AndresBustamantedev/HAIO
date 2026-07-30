@@ -39,7 +39,7 @@ export type MatcherInput = {
   readonly supabase: SupabaseClient
   readonly integrationId: string
   readonly organizationId: string
-  readonly providerId: string
+  readonly providerId: string | null
   readonly syncRunId: string
   readonly environment: 'production' | 'sandbox'
   readonly domains: ReadonlyArray<NormalizedDomain>
@@ -157,7 +157,7 @@ async function createResource(
   input: {
     integrationId: string
     organizationId: string
-    providerId: string
+    providerId: string | null
     syncRunId: string
     environment: string
     domain: NormalizedDomain
@@ -180,7 +180,7 @@ async function createResource(
     .insert({
       integration_id: integrationId,
       organization_id: organizationId,
-      provider_id: providerId,
+      ...(providerId ? { provider_id: providerId } : {}),
       environment,
       external_resource_type: 'domain',
       external_resource_id: domain.externalId,

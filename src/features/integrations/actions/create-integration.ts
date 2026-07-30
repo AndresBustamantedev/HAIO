@@ -69,21 +69,11 @@ export async function createIntegration(
     return { error: 'No autenticado.' }
   }
 
-  // 5. Buscar el provider_id para este connector_type
-  // La tabla providers debe existir y tener una fila con connector_type
-  const { data: provider, error: providerError } = await db
-    .from('providers')
-    .select('id')
-    .eq('connector_type', parsed.data.connector_type)
-    .single()
-
-  if (providerError || !provider) {
-    return { error: `Proveedor no encontrado para el conector: ${parsed.data.connector_type}` }
-  }
-
   const integrationId = randomUUID()
 
-  // 6. Insertar la integración (sin secretos — van en tabla separada)
+  // 5. Insertar la integración (sin secretos — van en tabla separada)
+  // provider_id es nullable: el vínculo con un providers record es opcional
+  // y se puede asignar manualmente desde la UI de inventario más adelante.
   const integrationName =
     parsed.data.name ??
     `${connectorMeta.displayName}${parsed.data.environment === 'sandbox' ? ' (Sandbox)' : ''}`.trim()
@@ -91,7 +81,6 @@ export async function createIntegration(
   const { error: insertError } = await db.from('integrations').insert({
     id: integrationId,
     organization_id: organization.organizationId,
-    provider_id: provider.id,
     connector_type: parsed.data.connector_type,
     name: integrationName,
     environment: parsed.data.environment,
