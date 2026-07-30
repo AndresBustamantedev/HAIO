@@ -488,6 +488,134 @@ Instalación CMS/web asociada a un cliente, dominio y hosting.
 
 ---
 
+## 9.2. Integraciones con proveedores externos  ← (0017)
+
+### integrations
+
+Cuenta activa de un proveedor externo conectada a la organización. Nunca almacena secretos en columnas de texto.
+
+| Columna | Tipo | Reglas |
+|---|---|---|
+| id | uuid | PK |
+| organization_id | uuid | FK → organizations.id, NOT NULL |
+| connector_type | text | NOT NULL — clave del conector (ej. 'godaddy') |
+| display_name | text | nullable |
+| environment | integration_environment | NOT NULL, default 'production' |
+| status | integration_status | NOT NULL, default 'draft' |
+| sync_frequency | integer | nullable — frecuencia en minutos. null = solo manual |
+| last_successful_sync_at | timestamptz | nullable |
+| last_failed_sync_at | timestamptz | nullable |
+| consecutive_failures | integer | NOT NULL, default 0 |
+| average_sync_duration_ms | integer | nullable — media ponderada EWMA |
+| last_sync_duration_ms | integer | nullable |
+| resources_count | integer | NOT NULL, default 0 |
+| unassigned_resources_count | integer | NOT NULL, default 0 |
+| active_alerts_count | integer | NOT NULL, default 0 |
+| last_connection_test_at | timestamptz | nullable |
+| last_connection_test_status | text | nullable — 'success' o 'failed' |
+| created_by | uuid | FK → auth.users.id, nullable |
+| created_at / updated_at | timestamptz | estándar |
+
+Vistas: `v_integrations_safe` (sin secret_ciphertext) y `v_integration_health` (métricas agregadas).
+
+### integration_secrets
+
+Secretos cifrados asociados a una integración. Append-only para auditoría; solo se actualiza `secret_ciphertext`.
+
+| Columna | Tipo | Reglas |
+|---|---|---|
+| id | uuid | PK |
+| integration_id | uuid | FK → integrations.id, NOT NULL |
+| organization_id | uuid | FK → organizations.id, NOT NULL |
+| secret_type | text | NOT NULL — clave semántica (ej. 'api_key', 'api_secret') |
+| secret_ciphertext | bytea | NOT NULL — AES-256-GCM cifrado. Nunca exponer. |
+| created_by | uuid | FK → auth.users.id, nullable |
+| created_at / updated_at | timestamptz | estándar |
+
+Restricción única: `(integration_id, secret_type)`.
+
+**Formato de cifrado:** byte[0]=format_version(0x01), byte[1]=key_version, bytes[2..13]=IV(12), bytes[14..29]=auth_tag(16), bytes[30+]=ciphertext. Clave en `INTEGRATION_ENCRYPTION_KEY` exclusivamente.
+
+### integration_sync_runs
+
+Historial de ejecuciones de sincronización. Append-only; `forbid_modify()` impide UPDATE/DELETE desde la app.
+
+| Columna | Tipo | Reglas |
+|---|---|---|
+| id | uuid | PK |
+| integration_id | uuid | FK, NOT NULL |
+| organization_id | uuid | FK, NOT NULL |
+| operation_type | sync_operation_type | NOT NULL |
+| trigger_type | text | NOT NULL — 'manual', 'scheduled', 'webhook'… |
+| status | sync_run_status | NOT NULL |
+| started_at | timestamptz | NOT NULL |
+| completed_at | timestamptz | nullable |
+| duration_ms | integer | nullable |
+| resources_found / created / updated / unchanged / failed | integer | nullable |
+| error_summary | text | nullable — texto seguro, sin secretos |
+
+Retención: runs completos 90 días; resúmenes indefinidamente.
+
+### external_resources
+
+Recursos descubiertos en el proveedor. Identidad: `(integration_id, environment, external_resource_type, external_resource_id)`.
+
+| Columna | Tipo | Reglas |
+|---|---|---|
+| id | uuid | PK |
+| integration_id | uuid | FK, NOT NULL |
+| organization_id | uuid | FK, NOT NULL |
+| environment | integration_environment | NOT NULL |
+| external_resource_type | text | NOT NULL — 'domain', 'mailbox'… |
+| external_resource_id | text | NOT NULL — ID en el proveedor |
+| external_display_name | text | nullable |
+| external_status | text | nullable |
+| external_payload_hash | text | nullable — SHA-256 del payload; solo para detectar cambios |
+| external_metadata | jsonb | NOT NULL, default {} — payload crudo sin secretos |
+| expires_on | date | nullable |
+| auto_renew | boolean | nullable |
+| nameservers | text[] | nullable |
+| registrar_name | text | nullable |
+| client_id | uuid | FK → clients.id, nullable — asignación manual |
+| local_resource_id | uuid | nullable — FK genérico al recurso local |
+| consecutive_missing_syncs | integer | NOT NULL, default 0 |
+| last_seen_at / first_seen_at | timestamptz | NOT NULL |
+| last_sync_run_id | uuid | FK → integration_sync_runs.id, nullable |
+| created_at / updated_at | timestamptz | estándar |
+
+**Campos protegidos** (nunca sobreescribe la sync): `client_id`, `local_resource_id`, `internal_notes`. Solo se actualizan: `expires_on`, `auto_renew`, `nameservers`, `external_status`, `external_payload_hash`, `last_seen_at`, `external_metadata`.
+
+**Lógica de missing:** sync incrementa `consecutive_missing_syncs` cuando el recurso no aparece; alerta solo cuando ≥ 2. Nunca auto-eliminar.
+
+### infrastructure_alerts
+
+Alertas de infraestructura deduplicadas por fingerprint.
+
+| Columna | Tipo | Reglas |
+|---|---|---|
+| id | uuid | PK |
+| organization_id / integration_id | uuid | FK, NOT NULL |
+| environment | integration_environment | NOT NULL |
+| alert_type | alert_type | NOT NULL |
+| severity | alert_severity | NOT NULL |
+| status | alert_status | NOT NULL, default 'open' |
+| resource_type / resource_id | text | nullable |
+| title / message | text | NOT NULL |
+| alert_metadata | jsonb | NOT NULL, default {} |
+| fingerprint | text | NOT NULL — SHA-256(org:integration:env:type:res_type:res_id) |
+| muted_until | timestamptz | nullable |
+| acknowledged_at / acknowledged_by | timestamptz / uuid | nullable |
+| resolved_at / resolution_reason | timestamptz / text | nullable |
+| created_at / updated_at | timestamptz | estándar |
+
+Índice único parcial: `(organization_id, fingerprint) WHERE status NOT IN ('resolved','ignored')`.
+
+### Función `begin_integration_sync(p_integration_id, p_sync_run_id, p_stale_timeout_min=60)`
+
+Adquiere lock atómico para evitar syncs concurrentes. Usa `SELECT...FOR UPDATE` en `integrations`. Recupera runs en estado 'running' más antiguos que `p_stale_timeout_min`.
+
+---
+
 ## 10. Credenciales y secretos
 
 No guardar contraseñas, tokens API, claves privadas ni secretos en texto plano dentro de tablas públicas.
@@ -786,6 +914,7 @@ Todas las vistas usan `WITH (security_invoker = true)` para que RLS se aplique c
 | 0011 | storage_policies | Buckets de Storage y políticas |
 | 0012–0015 | security_hardening + fixes | Funciones has_organization_role, is_organization_member, can_access_client, next_sequence_value; revocaciones y correcciones |
 | 0016 | infrastructure_inventory | providers, provider_accounts, hosting_sites, website_installations; columnas nuevas en domains/hosting_accounts/email_services/credentials; cifrado; vistas v_credentials_safe y v_client_infrastructure |
+| 0017 | integrations | Módulo de integraciones con proveedores externos. Ver sección 9.2 para el detalle completo. |
 
 Las vistas no deben eludir RLS accidentalmente.
 

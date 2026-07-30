@@ -1430,6 +1430,112 @@ export type Database = {
           },
         ]
       }
+      external_resources: {
+        Row: {
+          consecutive_missing_syncs: number
+          created_at: string
+          environment: Database["public"]["Enums"]["integration_environment"]
+          external_name: string | null
+          external_payload_hash: string | null
+          external_resource_id: string
+          external_resource_type: string
+          external_status: string | null
+          id: string
+          integration_id: string
+          last_seen_at: string | null
+          last_synced_at: string | null
+          local_resource_id: string | null
+          local_resource_type: string | null
+          organization_id: string
+          provider_id: string
+          raw_metadata: Json
+          updated_at: string
+        }
+        Insert: {
+          consecutive_missing_syncs?: number
+          created_at?: string
+          environment?: Database["public"]["Enums"]["integration_environment"]
+          external_name?: string | null
+          external_payload_hash?: string | null
+          external_resource_id: string
+          external_resource_type: string
+          external_status?: string | null
+          id?: string
+          integration_id: string
+          last_seen_at?: string | null
+          last_synced_at?: string | null
+          local_resource_id?: string | null
+          local_resource_type?: string | null
+          organization_id: string
+          provider_id: string
+          raw_metadata?: Json
+          updated_at?: string
+        }
+        Update: {
+          consecutive_missing_syncs?: number
+          created_at?: string
+          environment?: Database["public"]["Enums"]["integration_environment"]
+          external_name?: string | null
+          external_payload_hash?: string | null
+          external_resource_id?: string
+          external_resource_type?: string
+          external_status?: string | null
+          id?: string
+          integration_id?: string
+          last_seen_at?: string | null
+          last_synced_at?: string | null
+          local_resource_id?: string | null
+          local_resource_type?: string | null
+          organization_id?: string
+          provider_id?: string
+          raw_metadata?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_resources_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_resources_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "v_integration_health"
+            referencedColumns: ["integration_id"]
+          },
+          {
+            foreignKeyName: "external_resources_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "v_integrations_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_resources_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_resources_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "external_resources_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hosting_accounts: {
         Row: {
           auto_renew: boolean
@@ -1671,6 +1777,528 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      infrastructure_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          client_id: string | null
+          created_at: string
+          description: string | null
+          detected_at: string
+          fingerprint: string
+          id: string
+          integration_id: string | null
+          last_detected_at: string
+          metadata: Json
+          muted_until: string | null
+          organization_id: string
+          resolution_reason: string | null
+          resolved_at: string | null
+          resource_id: string | null
+          resource_type: string | null
+          severity: Database["public"]["Enums"]["alert_severity"]
+          status: Database["public"]["Enums"]["alert_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          detected_at?: string
+          fingerprint: string
+          id?: string
+          integration_id?: string | null
+          last_detected_at?: string
+          metadata?: Json
+          muted_until?: string | null
+          organization_id: string
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          severity?: Database["public"]["Enums"]["alert_severity"]
+          status?: Database["public"]["Enums"]["alert_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          detected_at?: string
+          fingerprint?: string
+          id?: string
+          integration_id?: string | null
+          last_detected_at?: string
+          metadata?: Json
+          muted_until?: string | null
+          organization_id?: string
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          severity?: Database["public"]["Enums"]["alert_severity"]
+          status?: Database["public"]["Enums"]["alert_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "infrastructure_alerts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infrastructure_alerts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_infrastructure"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "infrastructure_alerts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_summary"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "infrastructure_alerts_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infrastructure_alerts_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "v_integration_health"
+            referencedColumns: ["integration_id"]
+          },
+          {
+            foreignKeyName: "infrastructure_alerts_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "v_integrations_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infrastructure_alerts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "infrastructure_alerts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
+      integration_secrets: {
+        Row: {
+          created_at: string
+          encryption_key_version: number
+          id: string
+          integration_id: string
+          last_rotated_at: string | null
+          organization_id: string
+          secret_ciphertext: string
+          secret_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          encryption_key_version?: number
+          id?: string
+          integration_id: string
+          last_rotated_at?: string | null
+          organization_id: string
+          secret_ciphertext: string
+          secret_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          encryption_key_version?: number
+          id?: string
+          integration_id?: string
+          last_rotated_at?: string | null
+          organization_id?: string
+          secret_ciphertext?: string
+          secret_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_secrets_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_secrets_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "v_integration_health"
+            referencedColumns: ["integration_id"]
+          },
+          {
+            foreignKeyName: "integration_secrets_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "v_integrations_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_secrets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_secrets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
+      integration_sync_items: {
+        Row: {
+          action: Database["public"]["Enums"]["sync_item_action"]
+          created_at: string
+          error_message: string | null
+          external_payload_hash: string | null
+          external_resource_id: string
+          external_resource_type: string
+          id: string
+          integration_id: string
+          local_resource_id: string | null
+          local_resource_type: string | null
+          organization_id: string
+          sync_run_id: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["sync_item_action"]
+          created_at?: string
+          error_message?: string | null
+          external_payload_hash?: string | null
+          external_resource_id: string
+          external_resource_type: string
+          id?: string
+          integration_id: string
+          local_resource_id?: string | null
+          local_resource_type?: string | null
+          organization_id: string
+          sync_run_id: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["sync_item_action"]
+          created_at?: string
+          error_message?: string | null
+          external_payload_hash?: string | null
+          external_resource_id?: string
+          external_resource_type?: string
+          id?: string
+          integration_id?: string
+          local_resource_id?: string | null
+          local_resource_type?: string | null
+          organization_id?: string
+          sync_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_items_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_items_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "v_integration_health"
+            referencedColumns: ["integration_id"]
+          },
+          {
+            foreignKeyName: "integration_sync_items_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "v_integrations_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_items_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "integration_sync_items_sync_run_id_fkey"
+            columns: ["sync_run_id"]
+            isOneToOne: false
+            referencedRelation: "integration_sync_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_sync_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          error_summary: string | null
+          id: string
+          initiated_by: string | null
+          integration_id: string
+          metadata: Json
+          operation_type: Database["public"]["Enums"]["sync_operation_type"]
+          organization_id: string
+          resources_created: number
+          resources_failed: number
+          resources_found: number
+          resources_unchanged: number
+          resources_updated: number
+          started_at: string | null
+          status: Database["public"]["Enums"]["sync_run_status"]
+          trigger_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_summary?: string | null
+          id?: string
+          initiated_by?: string | null
+          integration_id: string
+          metadata?: Json
+          operation_type: Database["public"]["Enums"]["sync_operation_type"]
+          organization_id: string
+          resources_created?: number
+          resources_failed?: number
+          resources_found?: number
+          resources_unchanged?: number
+          resources_updated?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["sync_run_status"]
+          trigger_type: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_summary?: string | null
+          id?: string
+          initiated_by?: string | null
+          integration_id?: string
+          metadata?: Json
+          operation_type?: Database["public"]["Enums"]["sync_operation_type"]
+          organization_id?: string
+          resources_created?: number
+          resources_failed?: number
+          resources_found?: number
+          resources_unchanged?: number
+          resources_updated?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["sync_run_status"]
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_runs_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_runs_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "v_integration_health"
+            referencedColumns: ["integration_id"]
+          },
+          {
+            foreignKeyName: "integration_sync_runs_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "v_integrations_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_runs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_sync_runs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
+      integrations: {
+        Row: {
+          active_alerts_count: number
+          average_sync_duration_ms: number | null
+          connector_type: string
+          consecutive_failures: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          environment: Database["public"]["Enums"]["integration_environment"]
+          id: string
+          last_connection_test_at: string | null
+          last_connection_test_status: string | null
+          last_failed_sync_at: string | null
+          last_successful_sync_at: string | null
+          last_sync_completed_at: string | null
+          last_sync_duration_ms: number | null
+          last_sync_error: string | null
+          last_sync_started_at: string | null
+          last_sync_status:
+            | Database["public"]["Enums"]["sync_run_status"]
+            | null
+          name: string
+          next_sync_at: string | null
+          organization_id: string
+          provider_account_id: string | null
+          provider_id: string
+          resources_count: number
+          status: Database["public"]["Enums"]["integration_status"]
+          sync_enabled: boolean
+          sync_frequency: string
+          unassigned_resources_count: number
+          updated_at: string
+        }
+        Insert: {
+          active_alerts_count?: number
+          average_sync_duration_ms?: number | null
+          connector_type: string
+          consecutive_failures?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          environment?: Database["public"]["Enums"]["integration_environment"]
+          id?: string
+          last_connection_test_at?: string | null
+          last_connection_test_status?: string | null
+          last_failed_sync_at?: string | null
+          last_successful_sync_at?: string | null
+          last_sync_completed_at?: string | null
+          last_sync_duration_ms?: number | null
+          last_sync_error?: string | null
+          last_sync_started_at?: string | null
+          last_sync_status?:
+            | Database["public"]["Enums"]["sync_run_status"]
+            | null
+          name: string
+          next_sync_at?: string | null
+          organization_id: string
+          provider_account_id?: string | null
+          provider_id: string
+          resources_count?: number
+          status?: Database["public"]["Enums"]["integration_status"]
+          sync_enabled?: boolean
+          sync_frequency?: string
+          unassigned_resources_count?: number
+          updated_at?: string
+        }
+        Update: {
+          active_alerts_count?: number
+          average_sync_duration_ms?: number | null
+          connector_type?: string
+          consecutive_failures?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          environment?: Database["public"]["Enums"]["integration_environment"]
+          id?: string
+          last_connection_test_at?: string | null
+          last_connection_test_status?: string | null
+          last_failed_sync_at?: string | null
+          last_successful_sync_at?: string | null
+          last_sync_completed_at?: string | null
+          last_sync_duration_ms?: number | null
+          last_sync_error?: string | null
+          last_sync_started_at?: string | null
+          last_sync_status?:
+            | Database["public"]["Enums"]["sync_run_status"]
+            | null
+          name?: string
+          next_sync_at?: string | null
+          organization_id?: string
+          provider_account_id?: string | null
+          provider_id?: string
+          resources_count?: number
+          status?: Database["public"]["Enums"]["integration_status"]
+          sync_enabled?: boolean
+          sync_frequency?: string
+          unassigned_resources_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "integrations_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integrations_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
             referencedColumns: ["id"]
           },
         ]
@@ -3659,6 +4287,163 @@ export type Database = {
         }
         Relationships: []
       }
+      v_integration_health: {
+        Row: {
+          active_alerts_count: number | null
+          average_sync_duration_ms: number | null
+          connector_type: string | null
+          consecutive_failures: number | null
+          current_active_alerts: number | null
+          current_unassigned_count: number | null
+          environment:
+            | Database["public"]["Enums"]["integration_environment"]
+            | null
+          failures_last_24h: number | null
+          integration_id: string | null
+          last_failed_sync_at: string | null
+          last_successful_sync_at: string | null
+          last_sync_duration_ms: number | null
+          name: string | null
+          organization_id: string | null
+          resources_count: number | null
+          status: Database["public"]["Enums"]["integration_status"] | null
+          syncs_last_24h: number | null
+          unassigned_resources_count: number | null
+        }
+        Insert: {
+          active_alerts_count?: number | null
+          average_sync_duration_ms?: number | null
+          connector_type?: string | null
+          consecutive_failures?: number | null
+          current_active_alerts?: never
+          current_unassigned_count?: never
+          environment?:
+            | Database["public"]["Enums"]["integration_environment"]
+            | null
+          failures_last_24h?: never
+          integration_id?: string | null
+          last_failed_sync_at?: string | null
+          last_successful_sync_at?: string | null
+          last_sync_duration_ms?: number | null
+          name?: string | null
+          organization_id?: string | null
+          resources_count?: number | null
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          syncs_last_24h?: never
+          unassigned_resources_count?: number | null
+        }
+        Update: {
+          active_alerts_count?: number | null
+          average_sync_duration_ms?: number | null
+          connector_type?: string | null
+          consecutive_failures?: number | null
+          current_active_alerts?: never
+          current_unassigned_count?: never
+          environment?:
+            | Database["public"]["Enums"]["integration_environment"]
+            | null
+          failures_last_24h?: never
+          integration_id?: string | null
+          last_failed_sync_at?: string | null
+          last_successful_sync_at?: string | null
+          last_sync_duration_ms?: number | null
+          name?: string | null
+          organization_id?: string | null
+          resources_count?: number | null
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          syncs_last_24h?: never
+          unassigned_resources_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
+      v_integrations_safe: {
+        Row: {
+          active_alerts_count: number | null
+          average_sync_duration_ms: number | null
+          configured_secret_types: string[] | null
+          connector_type: string | null
+          consecutive_failures: number | null
+          created_at: string | null
+          created_by: string | null
+          deleted_at: string | null
+          environment:
+            | Database["public"]["Enums"]["integration_environment"]
+            | null
+          id: string | null
+          last_connection_test_at: string | null
+          last_connection_test_status: string | null
+          last_failed_sync_at: string | null
+          last_successful_sync_at: string | null
+          last_sync_completed_at: string | null
+          last_sync_duration_ms: number | null
+          last_sync_error: string | null
+          last_sync_started_at: string | null
+          last_sync_status:
+            | Database["public"]["Enums"]["sync_run_status"]
+            | null
+          name: string | null
+          next_sync_at: string | null
+          organization_id: string | null
+          provider_account_id: string | null
+          provider_category:
+            | Database["public"]["Enums"]["provider_category"]
+            | null
+          provider_id: string | null
+          provider_name: string | null
+          provider_website: string | null
+          resources_count: number | null
+          status: Database["public"]["Enums"]["integration_status"] | null
+          sync_enabled: boolean | null
+          sync_frequency: string | null
+          unassigned_resources_count: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "v_dashboard_metrics"
+            referencedColumns: ["organization_id"]
+          },
+          {
+            foreignKeyName: "integrations_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integrations_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_invoice_balances: {
         Row: {
           amount_due: number | null
@@ -3724,6 +4509,14 @@ export type Database = {
       }
     }
     Functions: {
+      begin_integration_sync: {
+        Args: {
+          p_integration_id: string
+          p_stale_timeout_min?: number
+          p_sync_run_id: string
+        }
+        Returns: boolean
+      }
       can_access_client: { Args: { client_id: string }; Returns: boolean }
       has_organization_role: {
         Args: {
@@ -3751,6 +4544,8 @@ export type Database = {
       }
     }
     Enums: {
+      alert_severity: "info" | "low" | "medium" | "high" | "critical"
+      alert_status: "active" | "acknowledged" | "muted" | "resolved" | "ignored"
       backup_status:
         | "pending"
         | "running"
@@ -3804,6 +4599,14 @@ export type Database = {
         | "suspended"
         | "expired"
         | "cancelled"
+      integration_environment: "production" | "sandbox"
+      integration_status:
+        | "disconnected"
+        | "pending"
+        | "connected"
+        | "degraded"
+        | "error"
+        | "disabled"
       invoice_status:
         | "draft"
         | "issued"
@@ -3902,6 +4705,28 @@ export type Database = {
         | "paused"
         | "cancelled"
         | "expired"
+      sync_item_action:
+        | "discovered"
+        | "created"
+        | "updated"
+        | "unchanged"
+        | "ignored"
+        | "detached"
+        | "failed"
+      sync_operation_type:
+        | "test_connection"
+        | "initial_sync"
+        | "manual_sync"
+        | "scheduled_sync"
+        | "webhook_sync"
+        | "import"
+        | "credentials_validation"
+      sync_run_status:
+        | "pending"
+        | "running"
+        | "completed"
+        | "partial"
+        | "failed"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status:
         | "backlog"
@@ -4047,6 +4872,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      alert_severity: ["info", "low", "medium", "high", "critical"],
+      alert_status: ["active", "acknowledged", "muted", "resolved", "ignored"],
       backup_status: [
         "pending",
         "running",
@@ -4105,6 +4932,15 @@ export const Constants = {
         "suspended",
         "expired",
         "cancelled",
+      ],
+      integration_environment: ["production", "sandbox"],
+      integration_status: [
+        "disconnected",
+        "pending",
+        "connected",
+        "degraded",
+        "error",
+        "disabled",
       ],
       invoice_status: [
         "draft",
@@ -4215,6 +5051,25 @@ export const Constants = {
         "cancelled",
         "expired",
       ],
+      sync_item_action: [
+        "discovered",
+        "created",
+        "updated",
+        "unchanged",
+        "ignored",
+        "detached",
+        "failed",
+      ],
+      sync_operation_type: [
+        "test_connection",
+        "initial_sync",
+        "manual_sync",
+        "scheduled_sync",
+        "webhook_sync",
+        "import",
+        "credentials_validation",
+      ],
+      sync_run_status: ["pending", "running", "completed", "partial", "failed"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: [
         "backlog",
