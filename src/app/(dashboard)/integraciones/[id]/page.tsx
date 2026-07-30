@@ -69,19 +69,29 @@ export default async function IntegracionDetailPage({ params }: Props) {
     )
   }
 
-  let integration, resources, runs, alerts, clientOptions
+  // getIntegration fuera del try/catch: next/navigation#notFound() lanza internamente
+  // y si está dentro de un catch genérico queda atrapado mostrando el error state en vez del 404.
+  let integResult
   try {
-    const [integResult, resourceResult, runResult, alertResult, clients] = await Promise.all([
-      getIntegration(id, organization.organizationId),
+    integResult = await getIntegration(id, organization.organizationId)
+  } catch {
+    return (
+      <PageContainer>
+        <ErrorState description="No se pudo cargar la integración." />
+      </PageContainer>
+    )
+  }
+  if (!integResult) return notFound()
+
+  let resources, runs, alerts, clientOptions
+  try {
+    const [resourceResult, runResult, alertResult, clients] = await Promise.all([
       getExternalResources({ organizationId: organization.organizationId, integrationId: id, pageSize: 100 }),
       getSyncRuns({ organizationId: organization.organizationId, integrationId: id, pageSize: 10 }),
       getInfrastructureAlerts({ organizationId: organization.organizationId, integrationId: id, pageSize: 10 }),
       getClientOptions(organization.organizationId),
     ])
 
-    if (!integResult) return notFound()
-
-    integration = integResult.integration
     resources = resourceResult.resources
     runs = runResult.runs
     alerts = alertResult.alerts
@@ -93,6 +103,8 @@ export default async function IntegracionDetailPage({ params }: Props) {
       </PageContainer>
     )
   }
+
+  const integration = integResult.integration
 
   const connectorMeta = getConnectorMeta(integration.connector_type)
   const secretFields = connectorMeta?.requiredSecrets ?? []
