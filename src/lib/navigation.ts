@@ -21,6 +21,7 @@ import {
   SettingsIcon,
   BuildingIcon,
   MonitorIcon,
+  LinkIcon,
 } from "lucide-react"
 
 export type NavItem = {
@@ -45,6 +46,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Correos", href: "/correos", icon: MailIcon },
   { label: "Proveedores", href: "/proveedores", icon: BuildingIcon },
   { label: "Sitios web", href: "/sitios-web", icon: MonitorIcon },
+  { label: "Integraciones", href: "/integraciones", icon: LinkIcon },
   { label: "Credenciales", href: "/credenciales", icon: KeyRoundIcon },
   { label: "Presupuestos", href: "/presupuestos", icon: FileTextIcon },
   { label: "Facturas", href: "/facturas", icon: ReceiptTextIcon },

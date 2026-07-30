@@ -1,0 +1,51 @@
+import { type NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { getCurrentOrganization } from '@/lib/supabase/queries/organizations'
+
+/**
+ * GET /api/integrations/search-domains?q=example
+ *
+ * Busca dominios locales para vincular con un recurso externo.
+ * Solo devuelve id + domain_name del dominio y el nombre del cliente.
+ * Requiere sesión activa.
+ */
+export async function GET(req: NextRequest) {
+  const organization = await getCurrentOrganization()
+  if (!organization) {
+    return NextResponse.json({ error: 'No autenticado.' }, { status: 401 })
+  }
+
+  const q = req.nextUrl.searchParams.get('q') ?? ''
+  if (q.length < 2) {
+    return NextResponse.json({ domains: [] })
+  }
+
+  const supabase = await createClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any
+
+  const { data, error } = await db
+    .from('domains')
+    .select('id, domain_name, clients(legal_name, commercial_name)')
+    .eq('organization_id', organization.organizationId)
+    .is('deleted_at', null)
+    .ilike('domain_name', `%${q}%`)
+    .order('domain_name')
+    .limit(20)
+
+  if (error) {
+    return NextResponse.json({ error: 'Error al buscar dominios.' }, { status: 500 })
+  }
+
+  const domains = (data ?? []).map((row: Record<string, unknown>) => {
+    const client = row.clients as { legal_name?: string; commercial_name?: string } | null
+    const clientName = client?.commercial_name ?? client?.legal_name ?? null
+    return {
+      id: row.id,
+      domain_name: row.domain_name,
+      client_name: clientName,
+    }
+  })
+
+  return NextResponse.json({ domains })
+}

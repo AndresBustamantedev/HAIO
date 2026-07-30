@@ -32,3 +32,48 @@ export const updateIntegrationSchema = z.object({
 })
 
 export type UpdateIntegrationInput = z.infer<typeof updateIntegrationSchema>
+
+/** Campos editables desde la UI de configuración. */
+export const updateIntegrationSettingsSchema = z.object({
+  name: z.string().min(1, 'El nombre no puede estar vacío.').max(100),
+  sync_frequency: z.enum(['hourly', 'daily', 'weekly']),
+  sync_enabled: z.boolean(),
+})
+export type UpdateIntegrationSettingsInput = z.infer<typeof updateIntegrationSettingsSchema>
+
+/** Pre-test de conexión con credenciales en texto plano (nunca se guardan). */
+export const preTestConnectionSchema = z.object({
+  connector_type: z.string().min(1),
+  environment: z.enum(['production', 'sandbox']),
+  secrets: z.record(z.string(), z.string().min(1)),
+})
+export type PreTestConnectionInput = z.infer<typeof preTestConnectionSchema>
+
+/** Rotación de credenciales: reemplaza todos los secretos cifrados. */
+export const rotateCredentialsSchema = z.object({
+  secrets: z.record(z.string(), z.string().min(1, 'El valor no puede estar vacío.')),
+})
+export type RotateCredentialsInput = z.infer<typeof rotateCredentialsSchema>
+
+/** Vincula un recurso externo a un dominio local existente. */
+export const linkExternalResourceSchema = z.object({
+  externalResourceId: z.string().uuid('ID de recurso inválido.'),
+  localResourceId: z.string().uuid('ID de dominio inválido.'),
+  localResourceType: z.literal('domain'),
+})
+export type LinkExternalResourceInput = z.infer<typeof linkExternalResourceSchema>
+
+/** Importa un recurso externo creando un dominio local nuevo. */
+export const importDomainFromResourceSchema = z.object({
+  externalResourceId: z.string().uuid('ID de recurso inválido.'),
+  clientId: z.string().uuid('Debes seleccionar un cliente.'),
+  projectId: z.string().uuid().optional(),
+  notes: z.string().max(500).optional(),
+})
+export type ImportDomainFromResourceInput = z.infer<typeof importDomainFromResourceSchema>
+
+/** Desvincula un recurso externo de su dominio local sin borrar nada. */
+export const unlinkExternalResourceSchema = z.object({
+  externalResourceId: z.string().uuid('ID de recurso inválido.'),
+})
+export type UnlinkExternalResourceInput = z.infer<typeof unlinkExternalResourceSchema>

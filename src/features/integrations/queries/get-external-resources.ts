@@ -36,7 +36,7 @@ export async function getExternalResources(
     .select('*', { count: 'exact' })
     .eq('organization_id', params.organizationId)
     .eq('integration_id', params.integrationId)
-    .order('external_display_name', { ascending: true })
+    .order('external_name', { ascending: true })
     .range(from, to)
 
   if (params.resourceType) {
