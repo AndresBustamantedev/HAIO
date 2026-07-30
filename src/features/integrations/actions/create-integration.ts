@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { randomUUID } from 'crypto'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { getCurrentOrganization } from '@/lib/supabase/queries/organizations'
 import {
   createIntegrationSchema,
@@ -56,6 +57,10 @@ export async function createIntegration(
   const supabase = await createClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
+  // Admin client para operaciones sobre integration_secrets.
+  // Se usa únicamente DESPUÉS de validar sesión, org y rol arriba.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminDb = createAdminClient() as any
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -114,7 +119,9 @@ export async function createIntegration(
       return { error: 'Error al cifrar las credenciales. Verifica la configuración del servidor.' }
     }
 
-    const { error: secretError } = await db.from('integration_secrets').insert({
+    // integration_secrets no tiene grants para authenticated (0021).
+    // Se usa adminDb (service_role) después de haber validado arriba.
+    const { error: secretError } = await adminDb.from('integration_secrets').insert({
       integration_id: integrationId,
       organization_id: organization.organizationId,
       secret_type: secretType,
