@@ -25,6 +25,8 @@ export const GODADDY_META: ConnectorMeta = {
   connectorType: 'godaddy',
   displayName: 'GoDaddy',
   description: 'Sincroniza dominios registrados en GoDaddy via API v1.',
+  category: 'Dominios y DNS',
+  status: 'available',
   documentationUrl: 'https://developer.godaddy.com/doc/endpoint/domains',
   requiredSecrets: [
     {
@@ -95,13 +97,13 @@ export class GoDaddyConnector implements ProviderConnector {
     })
 
     const rawDomains = await client.listAllDomains()
-    const domains = mapGoDaddyDomains(rawDomains)
+    const resources = mapGoDaddyDomains(rawDomains)
 
-    return { domains }
+    return { resources }
   }
 
   async listDomains(context: SyncContext) {
     const result = await this.sync(context)
-    return result.domains ?? []
+    return result.resources.filter((r) => r.resourceType === 'domain') as import('../types').NormalizedDomain[]
   }
 }

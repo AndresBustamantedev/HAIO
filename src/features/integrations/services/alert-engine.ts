@@ -115,6 +115,23 @@ export async function processAlerts(input: AlertInput): Promise<void> {
     environment,
     syncRunId,
     now,
+    resourceType: 'domain',
+    expiredAlertType: 'domain_expired',
+    expiringSoonAlertType: 'domain_expiring_soon',
+    resourceLabel: 'Dominio',
+  })
+
+  // 4. Alertas de vencimiento de certificados SSL
+  await processExpirationAlerts(supabase, {
+    organizationId,
+    integrationId,
+    environment,
+    syncRunId,
+    now,
+    resourceType: 'ssl_certificate',
+    expiredAlertType: 'ssl_expired',
+    expiringSoonAlertType: 'ssl_expiring_soon',
+    resourceLabel: 'Certificado SSL',
   })
 }
 
@@ -128,22 +145,29 @@ async function processExpirationAlerts(
     environment: string
     syncRunId: string
     now: Date
+    resourceType: string
+    expiredAlertType: AlertType
+    expiringSoonAlertType: AlertType
+    resourceLabel: string
   },
 ): Promise<void> {
-  const { organizationId, integrationId, environment, syncRunId, now } = ctx
+  const {
+    organizationId, integrationId, environment, syncRunId, now,
+    resourceType, expiredAlertType, expiringSoonAlertType, resourceLabel,
+  } = ctx
 
-  // expires_on no tiene columna propia — está en raw_metadata.expiresOn
-  const { data: domains } = await supabase
+  // expiresOn no tiene columna propia — está en raw_metadata.expiresOn
+  const { data: resources } = await supabase
     .from('external_resources')
     .select('id, external_name, raw_metadata')
     .eq('integration_id', integrationId)
     .eq('environment', environment)
-    .eq('external_resource_type', 'domain')
+    .eq('external_resource_type', resourceType)
 
-  if (!domains) return
+  if (!resources) return
 
-  for (const domain of domains) {
-    const meta = domain.raw_metadata as Record<string, unknown>
+  for (const resource of resources) {
+    const meta = resource.raw_metadata as Record<string, unknown>
     const expiresOnRaw = meta?.expiresOn
     if (!expiresOnRaw || typeof expiresOnRaw !== 'string') continue
 
@@ -153,19 +177,19 @@ async function processExpirationAlerts(
     const daysUntilExpiry = Math.ceil(
       (expiresOn.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
     )
-    const domainName = (domain.external_name as string | null) ?? domain.id
+    const resourceName = (resource.external_name as string | null) ?? resource.id
 
     if (daysUntilExpiry < 0) {
       await upsertAlert(supabase, {
         organizationId,
         integrationId,
         environment,
-        alertType: 'domain_expired',
+        alertType: expiredAlertType,
         severity: 'critical',
-        resourceType: 'domain',
-        resourceId: domain.id as string,
-        title: `Dominio expirado: ${domainName}`,
-        description: `El dominio expiró el ${expiresOn.toLocaleDateString('es-ES')}.`,
+        resourceType,
+        resourceId: resource.id as string,
+        title: `${resourceLabel} expirado: ${resourceName}`,
+        description: `El ${resourceLabel.toLowerCase()} expiró el ${expiresOn.toLocaleDateString('es-ES')}.`,
         metadata: { syncRunId, expiresOn: expiresOnRaw, daysUntilExpiry },
       })
     } else if (daysUntilExpiry <= 30) {
@@ -174,11 +198,11 @@ async function processExpirationAlerts(
         organizationId,
         integrationId,
         environment,
-        alertType: 'domain_expiring_soon',
+        alertType: expiringSoonAlertType,
         severity,
-        resourceType: 'domain',
-        resourceId: domain.id as string,
-        title: `Dominio próximo a vencer: ${domainName}`,
+        resourceType,
+        resourceId: resource.id as string,
+        title: `${resourceLabel} próximo a vencer: ${resourceName}`,
         description: `Expira en ${daysUntilExpiry} día${daysUntilExpiry === 1 ? '' : 's'} (${expiresOn.toLocaleDateString('es-ES')}).`,
         metadata: { syncRunId, expiresOn: expiresOnRaw, daysUntilExpiry },
       })
@@ -186,10 +210,10 @@ async function processExpirationAlerts(
       await resolveAlerts(supabase, {
         organizationId,
         integrationId,
-        alertTypes: ['domain_expiring_soon', 'domain_expired'],
-        resourceType: 'domain',
-        resourceId: domain.id as string,
-        reason: 'El dominio ya no está próximo a vencer.',
+        alertTypes: [expiringSoonAlertType, expiredAlertType],
+        resourceType,
+        resourceId: resource.id as string,
+        reason: `El ${resourceLabel.toLowerCase()} ya no está próximo a vencer.`,
       })
     }
   }

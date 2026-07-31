@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { rotateIntegrationCredentials } from '@/features/integrations/actions/rotate-credentials'
 
-type SecretField = { type: string; label: string; isPassword: boolean }
+type SecretField = { type: string; label: string; isPassword: boolean; optional?: boolean }
 
 export function RotateCredentialsDialog({
   integrationId,
@@ -39,9 +39,9 @@ export function RotateCredentialsDialog({
   }
 
   async function handleSubmit() {
-    const missing = secretFields.filter((f) => !values[f.type]?.trim())
+    const missing = secretFields.filter((f) => !f.optional && !values[f.type]?.trim())
     if (missing.length > 0) {
-      toast.error(`Completa todos los campos: ${missing.map((f) => f.label).join(', ')}`)
+      toast.error(`Completa los campos obligatorios: ${missing.map((f) => f.label).join(', ')}`)
       return
     }
     setSubmitting(true)
@@ -77,7 +77,12 @@ export function RotateCredentialsDialog({
           </p>
           {secretFields.map((field) => (
             <div key={field.type} className="space-y-1.5">
-              <Label htmlFor={`rotate-${field.type}`}>{field.label}</Label>
+              <Label htmlFor={`rotate-${field.type}`}>
+                {field.label}
+                {field.optional && (
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">(opcional — déjalo vacío para eliminarlo)</span>
+                )}
+              </Label>
               <Input
                 id={`rotate-${field.type}`}
                 type={field.isPassword ? 'password' : 'text'}

@@ -17,7 +17,8 @@ export const createIntegrationSchema = z.object({
    * Secretos a cifrar. El cliente nunca recibe estos valores de vuelta.
    * Mapa de secret_type → valor en texto plano.
    */
-  secrets: z.record(z.string(), z.string().min(1)).optional().default({}),
+  // Valores vacíos se filtran en el formulario antes de enviar; aquí solo validamos el tipo.
+  secrets: z.record(z.string(), z.string()).optional().default({}),
 })
 
 export type CreateIntegrationInput = z.infer<typeof createIntegrationSchema>
@@ -49,9 +50,9 @@ export const preTestConnectionSchema = z.object({
 })
 export type PreTestConnectionInput = z.infer<typeof preTestConnectionSchema>
 
-/** Rotación de credenciales: reemplaza todos los secretos cifrados. */
+/** Rotación de credenciales: reemplaza los secretos cifrados. Valores vacíos se omiten. */
 export const rotateCredentialsSchema = z.object({
-  secrets: z.record(z.string(), z.string().min(1, 'El valor no puede estar vacío.')),
+  secrets: z.record(z.string(), z.string()),
 })
 export type RotateCredentialsInput = z.infer<typeof rotateCredentialsSchema>
 

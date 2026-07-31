@@ -14,14 +14,13 @@
  * - Crea alertas directamente (eso es responsabilidad del AlertEngine)
  *
  * Columnas de external_resources (migración 0017):
- *   external_name (no external_display_name)
- *   raw_metadata  (no external_metadata)
- *   — expires_on, nameservers, auto_renew, registrar_name van dentro de raw_metadata
+ *   external_name, raw_metadata, external_status, external_payload_hash
+ *   Todos los datos del recurso van en raw_metadata.
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseClient = import('@supabase/supabase-js').SupabaseClient<any>
-import type { NormalizedDomain } from '../connectors/types'
+import type { NormalizedResource, NormalizedResourceBase } from '../connectors/types'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -42,7 +41,7 @@ export type MatcherInput = {
   readonly providerId: string | null
   readonly syncRunId: string
   readonly environment: 'production' | 'sandbox'
-  readonly domains: ReadonlyArray<NormalizedDomain>
+  readonly resources: ReadonlyArray<NormalizedResource>
 }
 
 export type MatcherOutput = {
@@ -65,15 +64,14 @@ const PROTECTED_FIELDS = new Set([
 // ── Función principal ─────────────────────────────────────────────────────────
 
 export async function matchResources(input: MatcherInput): Promise<MatcherOutput> {
-  const { supabase, integrationId, organizationId, providerId, syncRunId, environment, domains } = input
+  const { supabase, integrationId, organizationId, providerId, environment, resources } = input
 
-  // 1. Cargar todos los external_resources existentes para esta integración
+  // 1. Cargar todos los external_resources existentes para esta integración+entorno
   const { data: existing, error: fetchError } = await supabase
     .from('external_resources')
     .select('id, external_resource_id, external_resource_type, external_payload_hash, consecutive_missing_syncs')
     .eq('integration_id', integrationId)
     .eq('environment', environment)
-    .eq('external_resource_type', 'domain')
 
   if (fetchError) {
     throw new Error(
@@ -81,65 +79,69 @@ export async function matchResources(input: MatcherInput): Promise<MatcherOutput
     )
   }
 
-  // Indexar por external_resource_id para O(1) lookup
+  // Indexar por (type, external_resource_id) para O(1) lookup
   const existingMap = new Map<string, ExistingResource>()
   for (const row of existing ?? []) {
-    existingMap.set(row.external_resource_id as string, row as ExistingResource)
+    const key = buildKey(row.external_resource_type as string, row.external_resource_id as string)
+    existingMap.set(key, row as ExistingResource)
   }
 
   const results: MatchResult[] = []
-  const seenExternalIds = new Set<string>()
+  const seenKeys = new Set<string>()
 
-  // 2. Procesar cada dominio recibido
-  for (const domain of domains) {
-    seenExternalIds.add(domain.externalId)
+  // 2. Procesar cada recurso recibido
+  for (const resource of resources) {
+    const key = buildKey(resource.resourceType, resource.externalId)
+    seenKeys.add(key)
 
-    const existing = existingMap.get(domain.externalId)
+    const found = existingMap.get(key)
 
-    if (!existing) {
+    if (!found) {
       const result = await createResource(supabase, {
         integrationId,
         organizationId,
         providerId,
-        syncRunId,
         environment,
-        domain,
+        resource,
       })
       results.push(result)
-    } else if (existing.external_payload_hash !== domain.externalPayloadHash) {
-      const result = await updateResource(supabase, {
-        resourceDbId: existing.id,
-        domain,
-      })
+    } else if (found.external_payload_hash !== resource.externalPayloadHash) {
+      const result = await updateResource(supabase, { resourceDbId: found.id, resource })
       results.push(result)
     } else {
-      const result = await touchResource(supabase, existing.id, domain.externalId)
+      const result = await touchResource(supabase, found.id, resource.externalId, resource.resourceType)
       results.push(result)
     }
   }
 
   // 3. Incrementar consecutive_missing_syncs para los no vistos
-  const missingIds = Array.from(existingMap.keys()).filter((id) => !seenExternalIds.has(id))
-  if (missingIds.length > 0) {
-    await incrementMissingSyncs(supabase, integrationId, environment, missingIds)
+  const missingKeys = Array.from(existingMap.keys()).filter((k) => !seenKeys.has(k))
+  const missingExternalIds = missingKeys.map((k) => k.split('\x00')[1])
+
+  if (missingExternalIds.length > 0) {
+    await incrementMissingSyncs(supabase, integrationId, environment, missingExternalIds)
   }
 
   // 4. Resetear consecutive_missing_syncs para los sí vistos
-  const seenDbIds = Array.from(seenExternalIds)
-    .map((extId) => existingMap.get(extId)?.id)
+  const seenDbIds = Array.from(seenKeys)
+    .map((k) => existingMap.get(k)?.id)
     .filter((id): id is string => id !== undefined)
 
   if (seenDbIds.length > 0) {
     await resetMissingSyncs(supabase, seenDbIds)
   }
 
-  const counts = summarize(results)
-
   return {
     results,
-    ...counts,
-    missingExternalIds: missingIds,
+    ...summarize(results),
+    missingExternalIds,
   }
+}
+
+// ── Helpers de indexado ───────────────────────────────────────────────────────
+
+function buildKey(resourceType: string, externalId: string): string {
+  return `${resourceType}\x00${externalId}`
 }
 
 // ── Operaciones individuales ──────────────────────────────────────────────────
@@ -158,22 +160,11 @@ async function createResource(
     integrationId: string
     organizationId: string
     providerId: string | null
-    syncRunId: string
     environment: string
-    domain: NormalizedDomain
+    resource: NormalizedResourceBase
   },
 ): Promise<MatchResult> {
-  const { integrationId, organizationId, providerId, environment, domain } = input
-
-  // Los campos específicos del dominio (expires_on, nameservers, etc.)
-  // no tienen columnas propias en external_resources — van en raw_metadata.
-  const rawMetadata = {
-    ...domain.rawMetadata,
-    expiresOn: domain.expiresOn?.toISOString() ?? null,
-    autoRenew: domain.autoRenew,
-    nameservers: domain.nameservers,
-    registrarName: domain.registrarName,
-  }
+  const { integrationId, organizationId, providerId, environment, resource } = input
 
   const { data, error } = await supabase
     .from('external_resources')
@@ -182,12 +173,12 @@ async function createResource(
       organization_id: organizationId,
       ...(providerId ? { provider_id: providerId } : {}),
       environment,
-      external_resource_type: 'domain',
-      external_resource_id: domain.externalId,
-      external_name: domain.domainName,
-      external_status: domain.status,
-      external_payload_hash: domain.externalPayloadHash,
-      raw_metadata: rawMetadata,
+      external_resource_type: resource.resourceType,
+      external_resource_id: resource.externalId,
+      external_name: resource.externalName,
+      external_status: resource.externalStatus,
+      external_payload_hash: resource.externalPayloadHash,
+      raw_metadata: resource.rawMetadata,
       last_seen_at: new Date().toISOString(),
       consecutive_missing_syncs: 0,
     })
@@ -196,16 +187,16 @@ async function createResource(
 
   if (error) {
     return {
-      externalResourceId: domain.externalId,
-      externalResourceType: 'domain',
+      externalResourceId: resource.externalId,
+      externalResourceType: resource.resourceType,
       action: 'failed',
       errorMessage: error.message,
     }
   }
 
   return {
-    externalResourceId: domain.externalId,
-    externalResourceType: 'domain',
+    externalResourceId: resource.externalId,
+    externalResourceType: resource.resourceType,
     action: 'created',
     resourceDbId: data.id,
   }
@@ -213,30 +204,18 @@ async function createResource(
 
 async function updateResource(
   supabase: SupabaseClient,
-  input: {
-    resourceDbId: string
-    domain: NormalizedDomain
-  },
+  input: { resourceDbId: string; resource: NormalizedResourceBase },
 ): Promise<MatchResult> {
-  const { resourceDbId, domain } = input
+  const { resourceDbId, resource } = input
 
-  // Solo se actualizan los campos que puede gestionar la sincronización.
-  // NUNCA se tocan: local_resource_id, local_resource_type (ajuste 12).
-  const rawMetadata = {
-    ...domain.rawMetadata,
-    expiresOn: domain.expiresOn?.toISOString() ?? null,
-    autoRenew: domain.autoRenew,
-    nameservers: domain.nameservers,
-    registrarName: domain.registrarName,
-  }
-
+  // NUNCA se tocan: local_resource_id, local_resource_type
   const { error } = await supabase
     .from('external_resources')
     .update({
-      external_name: domain.domainName,
-      external_status: domain.status,
-      external_payload_hash: domain.externalPayloadHash,
-      raw_metadata: rawMetadata,
+      external_name: resource.externalName,
+      external_status: resource.externalStatus,
+      external_payload_hash: resource.externalPayloadHash,
+      raw_metadata: resource.rawMetadata,
       last_seen_at: new Date().toISOString(),
       last_synced_at: new Date().toISOString(),
       consecutive_missing_syncs: 0,
@@ -245,8 +224,8 @@ async function updateResource(
 
   if (error) {
     return {
-      externalResourceId: domain.externalId,
-      externalResourceType: 'domain',
+      externalResourceId: resource.externalId,
+      externalResourceType: resource.resourceType,
       action: 'failed',
       resourceDbId,
       errorMessage: error.message,
@@ -254,8 +233,8 @@ async function updateResource(
   }
 
   return {
-    externalResourceId: domain.externalId,
-    externalResourceType: 'domain',
+    externalResourceId: resource.externalId,
+    externalResourceType: resource.resourceType,
     action: 'updated',
     resourceDbId,
   }
@@ -265,6 +244,7 @@ async function touchResource(
   supabase: SupabaseClient,
   resourceDbId: string,
   externalId: string,
+  resourceType: string,
 ): Promise<MatchResult> {
   await supabase
     .from('external_resources')
@@ -276,7 +256,7 @@ async function touchResource(
 
   return {
     externalResourceId: externalId,
-    externalResourceType: 'domain',
+    externalResourceType: resourceType,
     action: 'unchanged',
     resourceDbId,
   }
@@ -295,7 +275,6 @@ async function incrementMissingSyncs(
   })
 
   if (error) {
-    // Fallback: actualizar uno a uno
     for (const extId of missingExternalIds) {
       await supabase.rpc('increment_missing_syncs_single', {
         p_integration_id: integrationId,

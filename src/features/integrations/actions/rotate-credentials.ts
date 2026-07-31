@@ -70,9 +70,22 @@ export async function rotateIntegrationCredentials(
   const adminDb = createAdminClient() as any
 
   for (const [secretType, plaintext] of Object.entries(parsed.data.secrets)) {
+    if (!plaintext.trim()) {
+      // Valor vacío: borrar el secret opcional (si existe) en lugar de guardarlo
+      const secretDef = connectorMeta.requiredSecrets.find((s) => s.type === secretType)
+      if (secretDef?.optional) {
+        await adminDb
+          .from('integration_secrets')
+          .delete()
+          .eq('integration_id', integrationId)
+          .eq('secret_type', secretType)
+      }
+      continue
+    }
+
     let ciphertextHex: string
     try {
-      const { hex } = encryptSecret(plaintext)
+      const { hex } = encryptSecret(plaintext.trim())
       ciphertextHex = formatHexForPostgres(hex)
     } catch {
       return { error: 'Error al cifrar las credenciales.' }

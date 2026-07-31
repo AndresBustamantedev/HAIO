@@ -64,25 +64,36 @@ function FilterBar({
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       {showSearch ? <SearchInput placeholder={searchPlaceholder} paramKey={searchParamKey} /> : null}
-      {filters.map((filter) => (
-        <Select
-          key={filter.key}
-          value={searchParams.get(filter.key) ?? "all"}
-          onValueChange={(value) => setFilter(filter.key, String(value))}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={filter.placeholder ?? filter.label} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{filter.label}: todos</SelectItem>
-            {filter.options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ))}
+      {filters.map((filter) => {
+        const currentValue = searchParams.get(filter.key) ?? "all"
+        // Base UI SelectValue no puede resolver labels de valores programáticos
+        // porque el popup (portal) es lazy y los items no están registrados al abrir.
+        // Calculamos el label aquí y lo pasamos como children para forzar el override.
+        const displayLabel =
+          currentValue !== "all"
+            ? (filter.options.find((o) => o.value === currentValue)?.label ?? currentValue)
+            : (filter.placeholder ?? filter.label)
+
+        return (
+          <Select
+            key={filter.key}
+            value={currentValue}
+            onValueChange={(value) => setFilter(filter.key, String(value))}
+          >
+            <SelectTrigger>
+              <SelectValue>{displayLabel}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{filter.label}: todos</SelectItem>
+              {filter.options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )
+      })}
     </div>
   )
 }

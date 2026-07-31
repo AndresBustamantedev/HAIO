@@ -9,6 +9,8 @@ import { ClientActionsMenu } from "@/features/clients/components/client-actions-
 import { ClientDetailTabs } from "@/features/clients/components/client-detail-tabs"
 import { getClientDetail } from "@/features/clients/queries/get-client-detail"
 import { getClientStatusBadge } from "@/features/clients/utils/status"
+import { getActiveStripeIntegrations } from "@/features/integrations/queries/get-active-stripe-integrations"
+import { StripePortalButton } from "@/features/integrations/components/stripe-portal-button"
 
 const AVATAR_PALETTE = [
   "bg-indigo-600",
@@ -53,6 +55,7 @@ export default async function ClienteDetailPage({ params }: ClienteDetailPagePro
   const badge = getClientStatusBadge(client.status)
   const avatarColor = getAvatarColor(client.display_name)
   const initials = getInitials(client.display_name)
+  const stripeIntegrations = await getActiveStripeIntegrations()
 
   const locationParts = [client.city, client.region].filter(Boolean)
   const location = locationParts.length > 0 ? locationParts.join(", ") : null
@@ -116,6 +119,7 @@ export default async function ClienteDetailPage({ params }: ClienteDetailPagePro
 
           {/* Action buttons */}
           <div className="flex shrink-0 items-center gap-2">
+            <StripePortalButton clientId={client.id} stripeIntegrations={stripeIntegrations} />
             <ClientActionsMenu client={client} />
             <EditClientButton client={client} />
           </div>

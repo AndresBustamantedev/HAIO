@@ -21,10 +21,12 @@ import { createIntegrationSchema, type CreateIntegrationInput } from '@/features
 import { createIntegration } from '@/features/integrations/actions/create-integration'
 import { preTestConnection } from '@/features/integrations/actions/pre-test-connection'
 
+type SecretDef = { type: string; label: string; description: string; isPassword: boolean; optional?: boolean }
+
 type Props = {
   connectorType: string
   connectorDisplayName: string
-  requiredSecrets: ReadonlyArray<{ type: string; label: string; description: string; isPassword: boolean }>
+  requiredSecrets: ReadonlyArray<SecretDef>
   supportedEnvironments: ReadonlyArray<'production' | 'sandbox'>
 }
 
@@ -58,12 +60,12 @@ export function CreateIntegrationForm({
     const values = form.getValues()
     const secrets: Record<string, string> = {}
     for (const s of requiredSecrets) {
-      const val = values.secrets?.[s.type]
-      if (!val) {
+      const val = values.secrets?.[s.type]?.trim()
+      if (!val && !s.optional) {
         toast.error(`Introduce el campo "${s.label}" antes de probar.`)
         return
       }
-      secrets[s.type] = val
+      if (val) secrets[s.type] = val
     }
     setTestResult('testing')
     setTestMessage('')
@@ -78,7 +80,12 @@ export function CreateIntegrationForm({
   }
 
   async function onSubmit(data: CreateIntegrationInput) {
-    const result = await createIntegration(data)
+    // Filtrar secretos vacíos antes de enviar (los opcionales pueden quedar en blanco)
+    const cleanSecrets: Record<string, string> = {}
+    for (const [k, v] of Object.entries(data.secrets ?? {})) {
+      if (v && v.trim()) cleanSecrets[k] = v.trim()
+    }
+    const result = await createIntegration({ ...data, secrets: cleanSecrets })
     if (result.error) {
       toast.error(result.error)
       return
@@ -136,7 +143,12 @@ export function CreateIntegrationForm({
         <legend className="px-1 text-sm font-medium">Credenciales de acceso</legend>
         {requiredSecrets.map((secret) => (
           <div key={secret.type} className="space-y-1.5">
-            <Label htmlFor={`secret_${secret.type}`}>{secret.label}</Label>
+            <Label htmlFor={`secret_${secret.type}`}>
+              {secret.label}
+              {secret.optional && (
+                <span className="ml-1 text-xs font-normal text-muted-foreground">(opcional)</span>
+              )}
+            </Label>
             <Input
               id={`secret_${secret.type}`}
               type={secret.isPassword ? 'password' : 'text'}

@@ -138,7 +138,7 @@ describe('SyncEngine', () => {
   // T13 — Doble sync concurrente: begin_integration_sync devuelve false → status failed
   it('T13: doble sync concurrente — la segunda sync falla al no adquirir el lock', async () => {
     vi.mocked(getConnector as ReturnType<typeof vi.fn>).mockReturnValue({
-      sync: vi.fn().mockResolvedValue({ domains: [] }),
+      sync: vi.fn().mockResolvedValue({ resources: [] }),
     })
 
     const db = makeAdminDb({ lockGranted: false })
@@ -160,8 +160,9 @@ describe('SyncEngine', () => {
   it('Sync exitosa — status completed con recursos encontrados', async () => {
     const mockConnector = {
       sync: vi.fn().mockResolvedValue({
-        domains: [
-          { resourceType: 'domain', externalId: 'test.com', domainName: 'test.com',
+        resources: [
+          { resourceType: 'domain', externalId: 'test.com', externalName: 'test.com',
+            externalStatus: 'active', domainName: 'test.com',
             status: 'active', expiresOn: null, autoRenew: true, nameservers: [],
             registrarName: null, externalPayloadHash: 'hash-1', rawMetadata: {} },
         ],

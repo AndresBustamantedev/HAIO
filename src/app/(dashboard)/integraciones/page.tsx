@@ -68,7 +68,7 @@ export default async function IntegracionesPage() {
         <EmptyState
           icon={LinkIcon}
           title="Sin integraciones"
-          description="Conecta GoDaddy u otros proveedores para sincronizar dominios automáticamente."
+          description="Conecta GoDaddy, Cloudflare, Vercel, GitHub y más para sincronizar recursos automáticamente."
           action={
             <Button render={<Link href="/integraciones/nueva" />}>
               <PlusIcon className="mr-1.5 size-4" />

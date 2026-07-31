@@ -43,11 +43,10 @@ export async function createIntegration(
     return { error: `Tipo de conector desconocido: ${parsed.data.connector_type}` }
   }
 
-  // 4. Verificar que se han proporcionado todos los secretos requeridos
-  const requiredSecretTypes = connectorMeta.requiredSecrets.map((s) => s.type)
-  const missingSecrets = requiredSecretTypes.filter(
-    (type) => !parsed.data.secrets[type],
-  )
+  // 4. Verificar que se han proporcionado todos los secretos obligatorios
+  const missingSecrets = connectorMeta.requiredSecrets
+    .filter((s) => !s.optional && !parsed.data.secrets[s.type])
+    .map((s) => s.label)
   if (missingSecrets.length > 0) {
     return {
       error: `Faltan las credenciales: ${missingSecrets.join(', ')}`,

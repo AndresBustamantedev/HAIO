@@ -216,10 +216,10 @@ export default async function IntegracionDetailPage({ params }: Props) {
       )}
 
       {/* Tabs */}
-      <Tabs defaultValue="dominios">
+      <Tabs defaultValue="recursos">
         <TabsList>
-          <TabsTrigger value="dominios">
-            Dominios
+          <TabsTrigger value="recursos">
+            Recursos
             {resources.length > 0 && (
               <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium">
                 {resources.length}
@@ -230,7 +230,7 @@ export default async function IntegracionDetailPage({ params }: Props) {
           <TabsTrigger value="configuracion">Configuración</TabsTrigger>
         </TabsList>
 
-        <TabsPanel value="dominios" className="mt-4">
+        <TabsPanel value="recursos" className="mt-4">
           <ExternalResourcesTable
             resources={resources}
             integrationId={integration.id}

@@ -33,10 +33,14 @@ export function mapGoDaddyDomain(raw: GoDaddyDomainRaw): NormalizedDomain {
     .update(JSON.stringify(hashPayload))
     .digest('hex')
 
+  const domainName = raw.domain.toLowerCase()
+
   return {
     resourceType: 'domain',
-    externalId: raw.domain.toLowerCase(),
-    domainName: raw.domain.toLowerCase(),
+    externalId: domainName,
+    externalName: domainName,
+    externalStatus: status,
+    domainName,
     status,
     expiresOn,
     autoRenew: raw.renewAuto,
@@ -48,11 +52,15 @@ export function mapGoDaddyDomain(raw: GoDaddyDomainRaw): NormalizedDomain {
       domain: raw.domain,
       status: raw.status,
       expires: raw.expires,
+      // expiresOn como ISO string — el AlertEngine lo lee desde raw_metadata
+      expiresOn: expiresOn?.toISOString() ?? null,
+      autoRenew: raw.renewAuto,
+      nameservers: normalizedNameservers,
+      registrarName: raw.registrar ?? null,
       renewAuto: raw.renewAuto,
       renewDeadline: raw.renewDeadline,
       createdAt: raw.createdAt,
       registrar: raw.registrar,
-      // nameServers se normaliza en el campo propio; aquí el original para referencia
       nameServers: raw.nameServers,
     },
   } satisfies NormalizedDomain

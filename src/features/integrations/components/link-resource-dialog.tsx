@@ -36,6 +36,15 @@ export function LinkResourceDialog({
   const [submitting, setSubmitting] = React.useState(false)
   const [selectedId, setSelectedId] = React.useState<string | null>(null)
 
+  function handleOpenChange(next: boolean) {
+    setOpen(next)
+    if (!next) {
+      setSearch('')
+      setDomains([])
+      setSelectedId(null)
+    }
+  }
+
   async function fetchDomains(q: string) {
     setLoading(true)
     try {
@@ -51,7 +60,9 @@ export function LinkResourceDialog({
 
   React.useEffect(() => {
     if (!open) return
-    const timer = setTimeout(() => fetchDomains(search), 300)
+    // Carga inmediata al abrir; debounce de 300ms al buscar
+    const delay = search === '' ? 0 : 300
+    const timer = setTimeout(() => fetchDomains(search), delay)
     return () => clearTimeout(timer)
   }, [search, open])
 
@@ -77,7 +88,7 @@ export function LinkResourceDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={trigger as React.ReactElement} />
       <DialogContent>
         <DialogHeader>
@@ -108,7 +119,12 @@ export function LinkResourceDialog({
             )}
             {!loading && domains.length === 0 && search.length >= 2 && (
               <p className="py-4 text-center text-sm text-muted-foreground">
-                No se encontraron dominios.
+                No se encontraron dominios con ese nombre.
+              </p>
+            )}
+            {!loading && domains.length === 0 && search.length < 2 && (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                No hay dominios locales. Usa &quot;Importar dominio&quot; para crear uno.
               </p>
             )}
             {domains.map((d) => (
@@ -129,7 +145,7 @@ export function LinkResourceDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Cancelar
           </Button>
           <Button disabled={!selectedId || submitting} onClick={handleSubmit}>

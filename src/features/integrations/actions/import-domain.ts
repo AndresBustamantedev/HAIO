@@ -61,7 +61,7 @@ export async function importDomainFromResource(
     .select('id')
     .eq('id', parsed.data.clientId)
     .eq('organization_id', organization.organizationId)
-    .is('archived_at', null)
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (!client) return { error: 'Cliente no encontrado.' }

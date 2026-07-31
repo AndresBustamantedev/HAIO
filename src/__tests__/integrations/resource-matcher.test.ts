@@ -72,6 +72,8 @@ function makeDomain(name: string, hash: string, overrides?: Partial<NormalizedDo
   return {
     resourceType: 'domain',
     externalId: name,
+    externalName: name,
+    externalStatus: 'active',
     domainName: name,
     status: 'active',
     expiresOn: null,
@@ -106,7 +108,7 @@ describe('matchResources', () => {
       makeDomain('beta.com',  'hash-2'),
     ]
 
-    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, domains })
+    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, resources: domains })
 
     expect(out.created).toBe(2)
     expect(out.updated).toBe(0)
@@ -129,7 +131,7 @@ describe('matchResources', () => {
       makeDomain('beta.com',  'hash-2'),
     ]
 
-    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, domains })
+    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, resources: domains })
 
     expect(out.unchanged).toBe(2)
     expect(out.created).toBe(0)
@@ -151,7 +153,7 @@ describe('matchResources', () => {
       makeDomain('beta.com',  'hash-2'),  // nuevo
     ]
 
-    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, domains })
+    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, resources: domains })
 
     expect(out.created).toBe(1)
     expect(out.unchanged).toBe(1)
@@ -168,7 +170,7 @@ describe('matchResources', () => {
     })
     const domains = [makeDomain('alpha.com', 'new-hash')]
 
-    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, domains })
+    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, resources: domains })
 
     expect(out.updated).toBe(1)
     expect(out.created).toBe(0)
@@ -186,7 +188,7 @@ describe('matchResources', () => {
     })
     const domains = [makeDomain('alpha.com', 'hash-1')]  // beta.com ausente
 
-    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, domains })
+    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, resources: domains })
 
     expect(out.missingExternalIds).toEqual(['beta.com'])
     // El RPC de incremento sí se llama
@@ -210,7 +212,7 @@ describe('matchResources', () => {
     })
     const domains = [makeDomain('alpha.com', 'hash-1')]
 
-    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, domains })
+    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, resources: domains })
 
     expect(out.failed).toBe(1)
     expect(out.created).toBe(0)
@@ -226,9 +228,9 @@ describe('matchResources', () => {
     const db = makeSupabase({
       existingResources: [makeExisting('ghost.com', 'hash-ghost')],
     })
-    const domains: NormalizedDomain[] = []  // Sync vacía — ghost.com ausente
+    const resources: NormalizedDomain[] = []  // Sync vacía — ghost.com ausente
 
-    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, domains })
+    const out = await matchResources({ ...BASE_INPUT, supabase: db as never, resources })
 
     expect(out.missingExternalIds).toContain('ghost.com')
     // No se llama a ningún delete
@@ -246,7 +248,7 @@ describe('matchResources', () => {
     })
     const domains = [makeDomain('alpha.com', 'new-hash')]
 
-    await matchResources({ ...BASE_INPUT, supabase: db as never, domains })
+    await matchResources({ ...BASE_INPUT, supabase: db as never, resources: domains })
 
     // Capturamos el objeto pasado al update
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

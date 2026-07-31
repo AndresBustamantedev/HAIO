@@ -18,6 +18,8 @@ import { EditInvoiceButton } from "@/features/invoices/components/edit-invoice-b
 import { getInvoiceDetail } from "@/features/invoices/queries/get-invoice-detail"
 import { getClientOptions } from "@/lib/supabase/queries/client-options"
 import { getInvoiceStatusBadge } from "@/features/invoices/utils/status"
+import { getActiveStripeIntegrations } from "@/features/integrations/queries/get-active-stripe-integrations"
+import { StripeInvoiceButton } from "@/features/integrations/components/stripe-invoice-button"
 
 function formatDate(value: string | null) {
   if (!value) return "—"
@@ -44,7 +46,10 @@ export default async function FacturaDetailPage({ params }: FacturaDetailPagePro
 
   const { invoice, items, payments } = detail
   const badge = getInvoiceStatusBadge(invoice.status)
-  const clientOptions = await getClientOptions(invoice.organization_id)
+  const [clientOptions, stripeIntegrations] = await Promise.all([
+    getClientOptions(invoice.organization_id),
+    getActiveStripeIntegrations(),
+  ])
 
   return (
     <PageContainer>
@@ -62,6 +67,10 @@ export default async function FacturaDetailPage({ params }: FacturaDetailPagePro
         actions={
           <div className="flex items-center gap-3">
             <StatusBadge tone={badge.tone} label={badge.label} />
+            <StripeInvoiceButton
+              invoiceId={invoice.id}
+              stripeIntegrations={stripeIntegrations}
+            />
             <EditInvoiceButton invoiceDetail={detail} clientOptions={clientOptions} />
           </div>
         }

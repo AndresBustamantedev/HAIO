@@ -137,7 +137,7 @@ export async function runSync(input: SyncEngineInput): Promise<SyncEngineOutput>
       providerId: integration.provider_id,
       syncRunId,
       environment: integration.environment as 'production' | 'sandbox',
-      domains: connectorResult.domains ?? [],
+      resources: connectorResult.resources ?? [],
     })
 
     errors.push(
@@ -166,7 +166,7 @@ export async function runSync(input: SyncEngineInput): Promise<SyncEngineOutput>
       syncFailed: false,
     })
 
-    const totalResources = connectorResult.domains?.length ?? 0
+    const totalResources = connectorResult.resources?.length ?? 0
     const durationMs = Date.now() - startedAt
     const status = matcherOutput.failed > 0 ? 'partial' : 'completed'
 

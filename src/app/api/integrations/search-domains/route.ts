@@ -16,22 +16,24 @@ export async function GET(req: NextRequest) {
   }
 
   const q = req.nextUrl.searchParams.get('q') ?? ''
-  if (q.length < 2) {
-    return NextResponse.json({ domains: [] })
-  }
 
   const supabase = await createClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
 
-  const { data, error } = await db
+  let query = db
     .from('domains')
     .select('id, domain_name, clients(legal_name, commercial_name)')
     .eq('organization_id', organization.organizationId)
     .is('deleted_at', null)
-    .ilike('domain_name', `%${q}%`)
     .order('domain_name')
     .limit(20)
+
+  if (q.length >= 2) {
+    query = query.ilike('domain_name', `%${q}%`)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     return NextResponse.json({ error: 'Error al buscar dominios.' }, { status: 500 })

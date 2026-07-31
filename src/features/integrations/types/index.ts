@@ -48,6 +48,8 @@ export type AlertType =
   | 'domain_expiring_soon'
   | 'domain_expired'
   | 'domain_missing'
+  | 'ssl_expiring_soon'
+  | 'ssl_expired'
   | 'sync_failed'
   | 'sync_stale'
   | 'connection_failed'
