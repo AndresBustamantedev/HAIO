@@ -11,6 +11,8 @@ import { getClientDetail } from "@/features/clients/queries/get-client-detail"
 import { getClientStatusBadge } from "@/features/clients/utils/status"
 import { getActiveStripeIntegrations } from "@/features/integrations/queries/get-active-stripe-integrations"
 import { StripePortalButton } from "@/features/integrations/components/stripe-portal-button"
+import { getServiceOptions } from "@/features/services/queries/get-service-options"
+import { getCurrentOrganization } from "@/lib/supabase/queries/organizations"
 
 const AVATAR_PALETTE = [
   "bg-indigo-600",
@@ -55,7 +57,11 @@ export default async function ClienteDetailPage({ params }: ClienteDetailPagePro
   const badge = getClientStatusBadge(client.status)
   const avatarColor = getAvatarColor(client.display_name)
   const initials = getInitials(client.display_name)
-  const stripeIntegrations = await getActiveStripeIntegrations()
+  const [stripeIntegrations, org] = await Promise.all([
+    getActiveStripeIntegrations(),
+    getCurrentOrganization(),
+  ])
+  const serviceOptions = org ? await getServiceOptions(org.organizationId) : []
 
   const locationParts = [client.city, client.region].filter(Boolean)
   const location = locationParts.length > 0 ? locationParts.join(", ") : null
@@ -126,7 +132,7 @@ export default async function ClienteDetailPage({ params }: ClienteDetailPagePro
         </div>
       </div>
 
-      <ClientDetailTabs detail={detail} />
+      <ClientDetailTabs detail={detail} serviceOptions={serviceOptions} />
     </PageContainer>
   )
 }

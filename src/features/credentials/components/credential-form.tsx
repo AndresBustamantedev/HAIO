@@ -4,10 +4,11 @@ import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 
+import { LockIcon, EyeIcon } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -187,9 +188,35 @@ function CredentialForm({ defaultValues, clientOptions, onSubmit, onSuccess, sub
             control={form.control}
             name="is_shared_with_client"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center gap-2 space-y-0">
-                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                <FormLabel className="font-normal">Compartida con el cliente</FormLabel>
+              <FormItem>
+                <FormLabel>Visibilidad</FormLabel>
+                <div className="flex rounded-md border p-0.5 gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => field.onChange(false)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                      !field.value
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <LockIcon className="size-3.5" />
+                    Solo admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => field.onChange(true)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                      field.value
+                        ? "bg-blue-50 text-blue-700 shadow-sm dark:bg-blue-900/30 dark:text-blue-400"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <EyeIcon className="size-3.5" />
+                    Portal cliente
+                  </button>
+                </div>
+                <FormMessage />
               </FormItem>
             )}
           />

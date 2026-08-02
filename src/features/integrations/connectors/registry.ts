@@ -14,6 +14,7 @@ import { ZohoMailConnector,         ZOHO_MAIL_META }         from './zoho-mail/c
 import { GoogleWorkspaceConnector,  GOOGLE_WORKSPACE_META }  from './google-workspace/connector'
 import { Microsoft365Connector,     MICROSOFT_365_META }     from './microsoft-365/connector'
 import { StripeConnector,           STRIPE_META }            from './stripe/connector'
+import { PayPalConnector,           PAYPAL_META }            from './paypal/connector'
 
 // ── Registro de conectores ────────────────────────────────────────────────────
 //
@@ -36,6 +37,7 @@ const connectorInstances = new Map<string, ProviderConnector>([
   ['google-workspace',  new GoogleWorkspaceConnector()],
   ['microsoft-365',     new Microsoft365Connector()],
   ['stripe',            new StripeConnector()],
+  ['paypal',            new PayPalConnector()],
 ])
 
 const connectorMetas = new Map<string, ConnectorMeta>([
@@ -52,6 +54,7 @@ const connectorMetas = new Map<string, ConnectorMeta>([
   ['google-workspace',  GOOGLE_WORKSPACE_META],
   ['microsoft-365',     MICROSOFT_365_META],
   ['stripe',            STRIPE_META],
+  ['paypal',            PAYPAL_META],
 ])
 
 /** Devuelve el conector para el tipo dado. Lanza UnknownConnectorError si no existe. */

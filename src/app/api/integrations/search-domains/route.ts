@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   let query = db
     .from('domains')
-    .select('id, domain_name, clients(legal_name, commercial_name)')
+    .select('id, domain_name, clients(display_name)')
     .eq('organization_id', organization.organizationId)
     .is('deleted_at', null)
     .order('domain_name')
@@ -40,12 +40,11 @@ export async function GET(req: NextRequest) {
   }
 
   const domains = (data ?? []).map((row: Record<string, unknown>) => {
-    const client = row.clients as { legal_name?: string; commercial_name?: string } | null
-    const clientName = client?.commercial_name ?? client?.legal_name ?? null
+    const client = row.clients as { display_name?: string } | null
     return {
       id: row.id,
       domain_name: row.domain_name,
-      client_name: clientName,
+      client_name: client?.display_name ?? null,
     }
   })
 

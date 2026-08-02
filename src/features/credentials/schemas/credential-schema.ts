@@ -12,6 +12,8 @@ export const CREDENTIAL_TYPES = [
   "api",
   "social_media",
   "analytics",
+  "license",
+  "saas",
   "other",
 ] as const
 

@@ -10,6 +10,7 @@ import { TicketMessageThread } from "@/features/tickets/components/ticket-messag
 import { getTicketDetail } from "@/features/tickets/queries/get-ticket-detail"
 import { getClientOptions } from "@/lib/supabase/queries/client-options"
 import { getTicketPriorityBadge, getTicketStatusBadge } from "@/features/tickets/utils/labels"
+import { createClient } from "@/lib/supabase/server"
 
 type TicketDetailPageProps = {
   params: Promise<{ id: string }>
@@ -26,7 +27,11 @@ export default async function TicketDetailPage({ params }: TicketDetailPageProps
   const { ticket, messages } = detail
   const statusBadge = getTicketStatusBadge(ticket.status)
   const priorityBadge = getTicketPriorityBadge(ticket.priority)
-  const clientOptions = await getClientOptions(ticket.organization_id)
+  const [clientOptions, supabase] = await Promise.all([
+    getClientOptions(ticket.organization_id),
+    createClient(),
+  ])
+  const { data: { user } } = await supabase.auth.getUser()
 
   return (
     <PageContainer>
@@ -63,7 +68,12 @@ export default async function TicketDetailPage({ params }: TicketDetailPageProps
         </div>
       ) : null}
 
-      <TicketMessageThread ticketId={ticket.id} messages={messages} />
+      <TicketMessageThread
+        ticketId={ticket.id}
+        messages={messages}
+        currentUserId={user?.id}
+        requesterUserId={ticket.requester_user_id}
+      />
     </PageContainer>
   )
 }

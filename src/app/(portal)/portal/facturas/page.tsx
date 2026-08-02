@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation"
-import { ReceiptIcon } from "lucide-react"
+import { ReceiptIcon, ChevronRightIcon } from "lucide-react"
+import Link from "next/link"
 
 import { getPortalSession } from "@/lib/supabase/queries/portal"
 import { createClient } from "@/lib/supabase/server"
+import { generatePaymentToken } from "@/lib/payment-token"
 import { StatusBadge } from "@/components/common/status-badge"
 import type { StatusBadgeTone } from "@/components/common/status-badge"
 
@@ -29,6 +31,9 @@ const STATUS_LABEL: Record<string, string> = {
   void: "Anulada", refunded: "Reembolsada",
 }
 
+// Facturas que muestran botón de pago destacado
+const PAYABLE_STATUSES = new Set(["issued", "sent", "viewed", "partially_paid", "overdue"])
+
 export default async function PortalFacturasPage() {
   const session = await getPortalSession()
   if (!session || !session.access.can_view_invoices) redirect("/portal")
@@ -41,6 +46,7 @@ export default async function PortalFacturasPage() {
     .order("due_date", { ascending: false })
 
   const invoices = data ?? []
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,35 +59,80 @@ export default async function PortalFacturasPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border bg-card">
-          {invoices.map((inv, i) => (
-            <div
-              key={inv.invoice_id ?? i}
-              className="flex flex-wrap items-center justify-between gap-3 border-b p-4 last:border-b-0"
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-foreground">{inv.invoice_number ?? "Sin número"}</p>
-                <p className="text-xs text-muted-foreground">
-                  Vence: {formatDate(inv.due_date)}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="font-semibold text-foreground">
-                    {formatCurrency(inv.total, inv.currency_code ?? "EUR")}
+          {invoices.map((inv, i) => {
+            const invoiceId = inv.invoice_id as string | null
+            const isPayable = PAYABLE_STATUSES.has(inv.status ?? "")
+            const isPaid    = inv.status === "paid"
+
+            // Generar token para todas las facturas con id (incluso pagadas — sirve de recibo)
+            let paymentUrl: string | null = null
+            if (invoiceId && inv.status !== "void") {
+              try {
+                paymentUrl = `${appUrl}/pagar/${generatePaymentToken(invoiceId)}`
+              } catch {
+                paymentUrl = null
+              }
+            }
+
+            return (
+              <div
+                key={invoiceId ?? i}
+                className="group relative flex flex-wrap items-center justify-between gap-3 border-b p-4 last:border-b-0 hover:bg-muted/30 transition-colors"
+              >
+                {/* Enlace que cubre toda la fila */}
+                {paymentUrl && (
+                  <Link
+                    href={paymentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute inset-0"
+                    aria-label={`Abrir factura ${inv.invoice_number ?? ""}`}
+                  />
+                )}
+
+                {/* Info de la factura */}
+                <div className="min-w-0">
+                  <p className="font-medium text-foreground">{inv.invoice_number ?? "Sin número"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Vence: {formatDate(inv.due_date)}
                   </p>
-                  {Number(inv.amount_due ?? 0) > 0 && inv.status !== "paid" ? (
-                    <p className="text-xs text-destructive">
-                      Pendiente: {formatCurrency(inv.amount_due, inv.currency_code ?? "EUR")}
-                    </p>
-                  ) : null}
                 </div>
-                <StatusBadge
-                  tone={invoiceStatusTone(inv.status)}
-                  label={STATUS_LABEL[inv.status ?? ""] ?? inv.status ?? "—"}
-                />
+
+                {/* Derecha: importe + estado + acción */}
+                <div className="relative flex flex-wrap items-center gap-3 z-10 pointer-events-none">
+                  <div className="text-right">
+                    <p className="font-semibold text-foreground">
+                      {formatCurrency(inv.total, inv.currency_code ?? "EUR")}
+                    </p>
+                    {Number(inv.amount_due ?? 0) > 0 && !isPaid ? (
+                      <p className="text-xs text-destructive">
+                        Pendiente: {formatCurrency(inv.amount_due, inv.currency_code ?? "EUR")}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <StatusBadge
+                    tone={invoiceStatusTone(inv.status)}
+                    label={STATUS_LABEL[inv.status ?? ""] ?? inv.status ?? "—"}
+                  />
+
+                  {/* Botón "Pagar" resaltado para facturas pendientes */}
+                  {isPayable && paymentUrl ? (
+                    <a
+                      href={paymentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="pointer-events-auto inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      Pagar online
+                    </a>
+                  ) : (
+                    <ChevronRightIcon className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

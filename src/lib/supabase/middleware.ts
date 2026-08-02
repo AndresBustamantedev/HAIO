@@ -33,9 +33,11 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isAuthRoute = pathname === "/login";
+  const isAuthRoute    = pathname === "/login";
+  // Rutas públicas que no requieren sesión: página de pago y sus APIs
+  const isPublicRoute  = pathname.startsWith("/pagar/") || pathname.startsWith("/api/pay/");
 
-  if (!user && !isAuthRoute) {
+  if (!user && !isAuthRoute && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }

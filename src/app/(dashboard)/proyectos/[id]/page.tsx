@@ -1,44 +1,64 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { CalendarIcon, CodeIcon, ExternalLinkIcon, WalletIcon } from "lucide-react"
+import { Suspense } from "react"
 
 import { PageContainer } from "@/components/common/page-container"
 import { PageHeader } from "@/components/common/page-header"
 import { Breadcrumbs } from "@/components/common/breadcrumbs"
 import { StatusBadge } from "@/components/common/status-badge"
 import { EditProjectButton } from "@/features/projects/components/edit-project-button"
-import { ProjectDetailTabs } from "@/features/projects/components/project-detail-tabs"
 import { getProjectDetail } from "@/features/projects/queries/get-project-detail"
 import { getClientOptions } from "@/lib/supabase/queries/client-options"
 import { getProjectStatusBadge, getProjectTypeLabel } from "@/features/projects/utils/status"
+import { createClient } from "@/lib/supabase/server"
 
-function formatDate(value: string | null) {
-  if (!value) return "—"
-  return new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short", year: "numeric" }).format(
-    new Date(value)
-  )
-}
+import { TabNav } from "./_tabs/tab-nav"
+import { TabResumen } from "./_tabs/tab-resumen"
+import { TabInfrastructura } from "./_tabs/tab-infraestructura"
+import { TabVault } from "./_tabs/tab-vault"
+import { TabWordPress } from "./_tabs/tab-wordpress"
+import { TabCostes } from "./_tabs/tab-costes"
+import { TabWiki } from "./_tabs/tab-wiki"
+import { TabDiario } from "./_tabs/tab-diario"
+import { TabBackups } from "./_tabs/tab-backups"
+import { TabAccesos } from "./_tabs/tab-accesos"
 
-function formatCurrency(value: number | null, currency: string | null) {
-  if (value == null) return "—"
-  return new Intl.NumberFormat("es-ES", { style: "currency", currency: currency ?? "EUR" }).format(value)
-}
+const VALID_TABS = [
+  "resumen", "infraestructura", "vault", "wordpress",
+  "costes", "wiki", "diario", "backups", "accesos",
+] as const
+type Tab = (typeof VALID_TABS)[number]
 
-type ProyectoDetailPageProps = {
+type Props = {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ tab?: string }>
 }
 
-export default async function ProyectoDetailPage({ params }: ProyectoDetailPageProps) {
-  const { id } = await params
-  const detail = await getProjectDetail(id)
+export default async function ProyectoDetailPage({ params, searchParams }: Props) {
+  const [{ id }, { tab: rawTab }] = await Promise.all([params, searchParams])
 
-  if (!detail) {
-    notFound()
-  }
+  const activeTab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : "resumen"
+
+  const detail = await getProjectDetail(id)
+  if (!detail) notFound()
 
   const { project } = detail
   const badge = getProjectStatusBadge(project.status)
-  const clientOptions = await getClientOptions(project.organization_id)
+
+  const clientId = project.client_id ?? ""
+
+  const [clientOptions, supabase] = await Promise.all([
+    getClientOptions(project.organization_id),
+    createClient(),
+  ])
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: members } = await (supabase as any)
+    .from("project_members")
+    .select("id, name, email, role")
+    .eq("project_id", id)
+    .order("role")
+    .order("name")
 
   return (
     <PageContainer>
@@ -68,60 +88,42 @@ export default async function ProyectoDetailPage({ params }: ProyectoDetailPageP
         }
       />
 
-      <div className="rounded-xl border bg-card p-6">
-        <p className="mb-4 text-sm font-medium text-foreground">Información general</p>
-        <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex items-start gap-2">
-            <CalendarIcon className="mt-0.5 size-4 text-muted-foreground" />
-            <div>
-              <dt className="text-xs text-muted-foreground">Fecha de inicio</dt>
-              <dd className="text-foreground">{formatDate(project.start_date)}</dd>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <CalendarIcon className="mt-0.5 size-4 text-muted-foreground" />
-            <div>
-              <dt className="text-xs text-muted-foreground">Fecha objetivo</dt>
-              <dd className="text-foreground">{formatDate(project.target_date)}</dd>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <WalletIcon className="mt-0.5 size-4 text-muted-foreground" />
-            <div>
-              <dt className="text-xs text-muted-foreground">Presupuesto</dt>
-              <dd className="text-foreground">{formatCurrency(project.budget, project.currency_code)}</dd>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <CodeIcon className="mt-0.5 size-4 text-muted-foreground" />
-            <div>
-              <dt className="text-xs text-muted-foreground">Repositorio</dt>
-              <dd className="text-foreground">
-                {project.repository_url ? (
-                  <a href={project.repository_url} target="_blank" rel="noreferrer" className="hover:underline">
-                    Ver enlace
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </dd>
-            </div>
-          </div>
-        </dl>
-        {project.production_url ? (
-          <div className="mt-4 flex items-center gap-2 border-t pt-4 text-sm">
-            <ExternalLinkIcon className="size-4 text-muted-foreground" />
-            <a href={project.production_url} target="_blank" rel="noreferrer" className="text-foreground hover:underline">
-              {project.production_url}
-            </a>
-          </div>
-        ) : null}
-        {project.description ? (
-          <p className="mt-4 border-t pt-4 text-sm text-muted-foreground">{project.description}</p>
-        ) : null}
-      </div>
+      <TabNav projectId={id} />
 
-      <ProjectDetailTabs detail={detail} />
+      <Suspense fallback={<div className="h-48 animate-pulse rounded-xl border bg-muted/30" />}>
+        {activeTab === "resumen" && (
+          <TabResumen detail={detail} members={members ?? []} />
+        )}
+        {activeTab === "infraestructura" && (
+          <TabInfrastructura projectId={id} clientId={clientId} />
+        )}
+        {activeTab === "vault" && (
+          <TabVault projectId={id} clientId={clientId} />
+        )}
+        {activeTab === "wordpress" && (
+          <TabWordPress projectId={id} />
+        )}
+        {activeTab === "costes" && (
+          <TabCostes
+            projectId={id}
+            clientId={clientId}
+            budget={project.budget ?? null}
+            currencyCode={project.currency_code ?? null}
+          />
+        )}
+        {activeTab === "wiki" && (
+          <TabWiki projectId={id} organizationId={project.organization_id} />
+        )}
+        {activeTab === "diario" && (
+          <TabDiario projectId={id} organizationId={project.organization_id} />
+        )}
+        {activeTab === "backups" && (
+          <TabBackups projectId={id} />
+        )}
+        {activeTab === "accesos" && (
+          <TabAccesos projectId={id} organizationId={project.organization_id} />
+        )}
+      </Suspense>
     </PageContainer>
   )
 }

@@ -6,7 +6,7 @@ import { ExternalLinkIcon, LoaderIcon, ZapIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createStripePortalSession } from '@/features/integrations/actions/create-stripe-portal'
 
-type StripeIntegration = { id: string; display_name: string | null }
+type StripeIntegration = { id: string; name: string | null }
 
 export function StripePortalButton({
   clientId,
@@ -85,7 +85,7 @@ export function StripePortalButtonMulti({
       >
         {stripeIntegrations.map((int) => (
           <option key={int.id} value={int.id}>
-            {int.display_name ?? int.id}
+            {int.name ?? int.id}
           </option>
         ))}
       </select>

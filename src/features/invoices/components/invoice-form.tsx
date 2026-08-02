@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { INVOICE_STATUSES, invoiceSchema, type InvoiceInput } from "@/features/invoices/schemas/invoice-schema"
+import { INVOICE_STATUSES, INVOICE_CURRENCIES, invoiceSchema, type InvoiceInput } from "@/features/invoices/schemas/invoice-schema"
 import { getInvoiceStatusBadge } from "@/features/invoices/utils/status"
 import type { ClientOption } from "@/features/invoices/types"
 
@@ -43,6 +43,7 @@ function InvoiceForm({ defaultValues, clientOptions, onSubmit, onSuccess, submit
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
       client_id: "",
+      currency_code: "EUR",
       status: "draft",
       issue_date: new Date().toISOString().slice(0, 10),
       due_date: "",
@@ -54,6 +55,7 @@ function InvoiceForm({ defaultValues, clientOptions, onSubmit, onSuccess, submit
 
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "items" })
   const items = form.watch("items")
+  const selectedCurrency = form.watch("currency_code") || "EUR"
 
   const estimatedTotal = items.reduce((sum, item) => {
     const qty = Number(item.quantity) || 0
@@ -82,28 +84,52 @@ function InvoiceForm({ defaultValues, clientOptions, onSubmit, onSuccess, submit
         <fieldset className="flex flex-col gap-4">
           <legend className="mb-1 text-sm font-medium text-foreground">Información general</legend>
 
-          <FormField
-            control={form.control}
-            name="client_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cliente *</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona un cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientOptions.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.display_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+            <FormField
+              control={form.control}
+              name="client_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cliente *</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} items={Object.fromEntries(clientOptions.map((c) => [c.id, c.display_name]))}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona un cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientOptions.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.display_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="currency_code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Moneda</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} items={Object.fromEntries(INVOICE_CURRENCIES.map((c) => [c.code, c.code]))}>
+                    <SelectTrigger className="w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INVOICE_CURRENCIES.map((c) => (
+                        <SelectItem key={c.code} value={c.code}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <FormField
@@ -136,7 +162,7 @@ function InvoiceForm({ defaultValues, clientOptions, onSubmit, onSuccess, submit
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Estado</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange} items={Object.fromEntries(INVOICE_STATUSES.map((s) => [s, getInvoiceStatusBadge(s).label]))}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -242,7 +268,7 @@ function InvoiceForm({ defaultValues, clientOptions, onSubmit, onSuccess, submit
           <p className="text-right text-sm text-muted-foreground">
             Total estimado:{" "}
             <span className="font-medium text-foreground">
-              {new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(estimatedTotal)}
+              {new Intl.NumberFormat("es-ES", { style: "currency", currency: selectedCurrency }).format(estimatedTotal)}
             </span>
           </p>
         </fieldset>

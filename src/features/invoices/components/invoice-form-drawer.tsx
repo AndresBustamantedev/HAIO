@@ -33,6 +33,7 @@ function InvoiceFormDrawer({ open, onOpenChange, clientOptions, invoiceDetail }:
           invoiceDetail
             ? {
                 client_id: invoiceDetail.invoice.client_id,
+                currency_code: invoiceDetail.invoice.currency_code ?? "EUR",
                 status: invoiceDetail.invoice.status,
                 issue_date: invoiceDetail.invoice.issue_date,
                 due_date: invoiceDetail.invoice.due_date ?? "",

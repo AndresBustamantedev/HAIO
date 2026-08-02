@@ -5,7 +5,7 @@ import { getCurrentOrganization } from '@/lib/supabase/queries/organizations'
 
 export type StripeIntegrationOption = {
   id: string
-  display_name: string | null
+  name: string | null
 }
 
 /** Devuelve las integraciones Stripe conectadas de la organización actual. */
@@ -18,13 +18,13 @@ export async function getActiveStripeIntegrations(): Promise<StripeIntegrationOp
   const db = supabase as any
 
   const { data } = await db
-    .from('integrations')
-    .select('id, display_name')
+    .from('v_integrations_safe')
+    .select('id, name')
     .eq('organization_id', organization.organizationId)
     .eq('connector_type', 'stripe')
     .eq('status', 'connected')
     .is('deleted_at', null)
-    .order('display_name')
+    .order('name')
 
   return (data ?? []) as StripeIntegrationOption[]
 }

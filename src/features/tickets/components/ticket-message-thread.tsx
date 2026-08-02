@@ -19,7 +19,16 @@ function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("es-ES", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
 }
 
-function TicketMessageThread({ ticketId, messages }: { ticketId: string; messages: TicketMessage[] }) {
+type Props = {
+  ticketId: string
+  messages: TicketMessage[]
+  /** ID del usuario admin actual — sus mensajes aparecen a la derecha */
+  currentUserId?: string
+  /** ID del autor del ticket (portal client) — sus mensajes aparecen a la izquierda */
+  requesterUserId?: string | null
+}
+
+function TicketMessageThread({ ticketId, messages, currentUserId, requesterUserId }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = React.useTransition()
 
@@ -47,23 +56,50 @@ function TicketMessageThread({ ticketId, messages }: { ticketId: string; message
       {messages.length === 0 ? (
         <EmptyState title="Sin mensajes todavía" description="Escribe el primer mensaje del ticket." />
       ) : (
-        <ul className="flex flex-col gap-3">
-          {messages.map((message) => (
-            <li
-              key={message.id}
-              className={
-                message.is_internal
-                  ? "rounded-lg border border-dashed bg-muted/50 p-3"
-                  : "rounded-lg border bg-card p-3"
-              }
-            >
-              <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
-                <span>{message.is_internal ? "Nota interna" : "Mensaje"}</span>
-                <span>{formatDateTime(message.created_at)}</span>
-              </div>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{message.body}</p>
-            </li>
-          ))}
+        <ul className="flex flex-col gap-2">
+          {messages.map((message) => {
+            // Nota interna — borde amarillo punteado, sin indentación
+            if (message.is_internal) {
+              return (
+                <li
+                  key={message.id}
+                  className="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950/30"
+                >
+                  <div className="mb-1 flex items-center justify-between text-xs text-amber-700 dark:text-amber-400">
+                    <span className="font-medium">Nota interna</span>
+                    <span>{formatDateTime(message.created_at)}</span>
+                  </div>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{message.body}</p>
+                </li>
+              )
+            }
+
+            const isFromClient = requesterUserId && message.author_user_id === requesterUserId
+            const isFromMe = currentUserId && message.author_user_id === currentUserId
+
+            // Cliente → izquierda (mr-8), Staff → derecha (ml-8)
+            if (isFromClient) {
+              return (
+                <li key={message.id} className="mr-8 rounded-xl border bg-card p-3">
+                  <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Cliente</span>
+                    <span>{formatDateTime(message.created_at)}</span>
+                  </div>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{message.body}</p>
+                </li>
+              )
+            }
+
+            return (
+              <li key={message.id} className="ml-8 rounded-xl border bg-primary/5 p-3">
+                <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">{isFromMe ? "Tú" : "Staff"}</span>
+                  <span>{formatDateTime(message.created_at)}</span>
+                </div>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{message.body}</p>
+              </li>
+            )
+          })}
         </ul>
       )}
 

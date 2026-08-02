@@ -81,7 +81,7 @@ function DomainForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitL
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Cliente *</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange} items={Object.fromEntries(clientOptions.map((c) => [c.id, c.display_name]))}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecciona un cliente" />
                   </SelectTrigger>
@@ -117,7 +117,7 @@ function DomainForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitL
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Estado</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <Select value={field.value} onValueChange={field.onChange} items={Object.fromEntries(DOMAIN_STATUSES.map((s) => [s, getDomainStatusBadge(s).label]))}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>

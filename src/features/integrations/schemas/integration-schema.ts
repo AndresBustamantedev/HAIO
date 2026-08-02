@@ -56,11 +56,11 @@ export const rotateCredentialsSchema = z.object({
 })
 export type RotateCredentialsInput = z.infer<typeof rotateCredentialsSchema>
 
-/** Vincula un recurso externo a un dominio local existente. */
+/** Vincula un recurso externo a un dominio, proyecto o cliente local. */
 export const linkExternalResourceSchema = z.object({
   externalResourceId: z.string().uuid('ID de recurso inválido.'),
-  localResourceId: z.string().uuid('ID de dominio inválido.'),
-  localResourceType: z.literal('domain'),
+  localResourceId: z.string().uuid('ID de recurso local inválido.'),
+  localResourceType: z.enum(['domain', 'project', 'client']),
 })
 export type LinkExternalResourceInput = z.infer<typeof linkExternalResourceSchema>
 

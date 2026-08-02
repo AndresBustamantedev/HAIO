@@ -81,7 +81,7 @@ function PaymentForm({ defaultValues, clientOptions, invoiceOptions, onSubmit, o
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Cliente *</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange} items={Object.fromEntries(clientOptions.map((c) => [c.id, c.display_name]))}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecciona un cliente" />
                   </SelectTrigger>

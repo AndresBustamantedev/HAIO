@@ -1,5 +1,6 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
-import { FolderKanbanIcon } from "lucide-react"
+import { FolderKanbanIcon, ChevronRightIcon } from "lucide-react"
 
 import { getPortalSession } from "@/lib/supabase/queries/portal"
 import { createClient } from "@/lib/supabase/server"
@@ -52,22 +53,29 @@ export default async function PortalProyectosPage() {
       ) : (
         <div className="flex flex-col gap-3">
           {projects.map((p) => (
-            <div key={p.id} className="rounded-xl border bg-card p-5">
+            <Link
+              key={p.id}
+              href={`/portal/proyectos/${p.id}`}
+              className="group rounded-xl border bg-card p-5 transition-colors hover:border-foreground/20 hover:bg-muted/40 block"
+            >
               <div className="flex items-start justify-between gap-3">
                 <h2 className="font-semibold text-foreground">{p.name}</h2>
-                <StatusBadge
-                  tone={projectStatusTone(p.status)}
-                  label={STATUS_LABEL[p.status] ?? p.status}
-                />
+                <div className="flex items-center gap-2 shrink-0">
+                  <StatusBadge
+                    tone={projectStatusTone(p.status)}
+                    label={STATUS_LABEL[p.status] ?? p.status}
+                  />
+                  <ChevronRightIcon className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
+                </div>
               </div>
               {p.description ? (
-                <p className="mt-1.5 text-sm text-muted-foreground">{p.description}</p>
+                <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">{p.description}</p>
               ) : null}
               <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
                 <span>Inicio: {formatDate(p.start_date)}</span>
                 <span>Fecha límite: {formatDate(p.target_date)}</span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

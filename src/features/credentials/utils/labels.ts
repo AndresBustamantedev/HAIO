@@ -2,7 +2,7 @@ import type { Database } from "@/types/database.types"
 
 type CredentialType = Database["public"]["Enums"]["credential_type"]
 
-const CREDENTIAL_TYPE_LABELS: Record<CredentialType, string> = {
+const CREDENTIAL_TYPE_LABELS: Record<string, string> = {
   website_admin: "Admin de sitio web",
   hosting_panel: "Panel de hosting",
   domain_registrar: "Registrador de dominio",
@@ -14,9 +14,11 @@ const CREDENTIAL_TYPE_LABELS: Record<CredentialType, string> = {
   api: "API",
   social_media: "Redes sociales",
   analytics: "Analítica",
+  license: "Licencia",
+  saas: "SaaS / Herramienta",
   other: "Otro",
 }
 
-export function getCredentialTypeLabel(type: CredentialType) {
-  return CREDENTIAL_TYPE_LABELS[type]
+export function getCredentialTypeLabel(type: string) {
+  return CREDENTIAL_TYPE_LABELS[type] ?? type
 }

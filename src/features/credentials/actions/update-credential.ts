@@ -18,7 +18,8 @@ export async function updateCredential(credentialId: string, input: CredentialIn
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
     .from("credentials")
     .update({
       label: parsed.data.label,

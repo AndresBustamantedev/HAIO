@@ -24,7 +24,8 @@ export async function createCredential(input: CredentialInput): Promise<ActionRe
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { error } = await supabase.from("credentials").insert({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from("credentials").insert({
     organization_id: organization.organizationId,
     label: parsed.data.label,
     type: parsed.data.type,

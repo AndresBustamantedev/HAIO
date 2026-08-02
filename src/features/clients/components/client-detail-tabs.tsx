@@ -19,7 +19,10 @@ import { StatusBadge } from "@/components/common/status-badge"
 import { EmptyState } from "@/components/common/empty-state"
 import { RevealCredentialButton } from "@/features/credentials/components/reveal-credential-button"
 import { getInvoiceStatusBadge } from "@/features/invoices/utils/status"
+import { AddClientServiceButton } from "@/features/client-services/components/add-client-service-button"
+import { ClientServiceActions } from "@/features/client-services/components/client-service-actions"
 import type { ClientDetail } from "@/features/clients/queries/get-client-detail"
+import type { ServiceOption } from "@/features/services/queries/get-service-options"
 
 // ----- Helpers -----
 
@@ -803,8 +806,8 @@ function InfraTab({ detail }: { detail: ClientDetail }) {
 
 // ----- Main tabs component -----
 
-function ClientDetailTabs({ detail }: { detail: ClientDetail }) {
-  const { contacts, projects, services, invoices, documents, activity, domains, hostingAccounts, emailServices, websiteInstallations, backupConfigs, credentials } = detail
+function ClientDetailTabs({ detail, serviceOptions }: { detail: ClientDetail; serviceOptions: ServiceOption[] }) {
+  const { client, contacts, projects, services, invoices, documents, activity, domains, hostingAccounts, emailServices, websiteInstallations, backupConfigs, credentials } = detail
 
   const emailAccounts = emailServices.flatMap((s) => s.email_accounts)
   const infraCount = domains.length + hostingAccounts.length + emailServices.length + websiteInstallations.length + backupConfigs.length
@@ -871,15 +874,31 @@ function ClientDetailTabs({ detail }: { detail: ClientDetail }) {
       <TabsPanel value="facturacion">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <p className="mb-3 font-semibold text-foreground">Servicios contratados</p>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="font-semibold text-foreground">Servicios contratados</p>
+              <AddClientServiceButton clientId={client.id} serviceOptions={serviceOptions} />
+            </div>
             {services.length === 0 ? (
               <EmptyState title="Sin servicios" description="No hay servicios contratados todavía." />
             ) : (
               <ul className="divide-y rounded-xl border bg-card overflow-hidden">
                 {services.map((service) => (
                   <li key={service.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                    <span className="font-medium text-foreground">{service.services?.name ?? "Servicio"}</span>
-                    <span className="text-muted-foreground">{fmtCurrency(service.unit_price, service.currency_code)}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-medium text-foreground">
+                        {service.name_override ?? service.services?.name ?? "Servicio"}
+                      </span>
+                      {service.services?.category ? (
+                        <span className="text-xs text-muted-foreground capitalize">{service.services.category}</span>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-muted-foreground">
+                        {fmtCurrency(service.unit_price, service.currency_code)}
+                        {service.billing_interval ? ` / ${service.billing_interval}` : ""}
+                      </span>
+                      <ClientServiceActions id={service.id} clientId={client.id} />
+                    </div>
                   </li>
                 ))}
               </ul>

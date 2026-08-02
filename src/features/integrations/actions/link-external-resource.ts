@@ -14,8 +14,31 @@ import {
 } from '@/features/integrations/schemas/integration-schema'
 
 type ActionResult = { error: string | null }
+type LocalResourceType = 'domain' | 'project' | 'client'
 
 const ALLOWED_ROLES = ['owner', 'admin', 'manager'] as const
+
+async function verifyLocalResource(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  type: LocalResourceType,
+  id: string,
+  organizationId: string,
+): Promise<boolean> {
+  const tableMap: Record<LocalResourceType, string> = {
+    domain: 'domains',
+    project: 'projects',
+    client: 'clients',
+  }
+  const { data } = await db
+    .from(tableMap[type])
+    .select('id')
+    .eq('id', id)
+    .eq('organization_id', organizationId)
+    .is('deleted_at', null)
+    .maybeSingle()
+  return !!data
+}
 
 /**
  * Vincula un recurso externo a un dominio local existente.
@@ -49,16 +72,17 @@ export async function linkExternalResource(
 
   if (!resource) return { error: 'Recurso externo no encontrado.' }
 
-  // Verificar que el dominio local pertenece a la organización
-  const { data: domain } = await db
-    .from('domains')
-    .select('id')
-    .eq('id', parsed.data.localResourceId)
-    .eq('organization_id', organization.organizationId)
-    .is('deleted_at', null)
-    .maybeSingle()
-
-  if (!domain) return { error: 'Dominio local no encontrado.' }
+  // Verificar que el recurso local pertenece a la organización
+  const localVerified = await verifyLocalResource(
+    db,
+    parsed.data.localResourceType,
+    parsed.data.localResourceId,
+    organization.organizationId,
+  )
+  if (!localVerified) {
+    const labels: Record<string, string> = { domain: 'Dominio', project: 'Proyecto', client: 'Cliente' }
+    return { error: `${labels[parsed.data.localResourceType] ?? 'Recurso'} local no encontrado.` }
+  }
 
   const { error } = await db
     .from('external_resources')

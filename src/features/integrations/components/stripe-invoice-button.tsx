@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { createStripeInvoice } from '@/features/integrations/actions/create-stripe-invoice'
 
-type StripeIntegration = { id: string; display_name: string | null }
+type StripeIntegration = { id: string; name: string | null }
 
 export function StripeInvoiceButton({
   invoiceId,
@@ -77,7 +77,7 @@ export function StripeInvoiceButton({
             >
               {stripeIntegrations.map((int) => (
                 <option key={int.id} value={int.id}>
-                  {int.display_name ?? int.id}
+                  {int.name ?? int.id}
                 </option>
               ))}
             </select>

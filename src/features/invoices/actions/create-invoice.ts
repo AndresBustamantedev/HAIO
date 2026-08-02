@@ -38,6 +38,7 @@ export async function createInvoice(input: InvoiceInput): Promise<ActionResult> 
       organization_id: organization.organizationId,
       client_id: parsed.data.client_id,
       invoice_number: invoiceNumber,
+      currency_code: parsed.data.currency_code ?? "EUR",
       status: parsed.data.status,
       issue_date: parsed.data.issue_date,
       due_date: parsed.data.due_date || null,
