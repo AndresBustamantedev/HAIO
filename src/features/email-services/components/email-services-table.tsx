@@ -30,7 +30,7 @@ function buildColumns(): DataTableColumn<EmailServiceWithClient>[] {
       header: "Cliente",
       cell: (service) =>
         service.clients ? (
-          <Link href={`/clientes/${service.clients.id}`} className="text-muted-foreground hover:underline">
+          <Link href={`/correos/${service.clients.id}`} className="text-muted-foreground hover:underline">
             {service.clients.display_name}
           </Link>
         ) : (

@@ -1,20 +1,31 @@
-import Link from "next/link"
-import { MailIcon, ChevronRightIcon } from "lucide-react"
+import { MailIcon } from "lucide-react"
 
 import { PageContainer } from "@/components/common/page-container"
 import { PageHeader } from "@/components/common/page-header"
+import { FilterBar } from "@/components/common/filter-bar"
+import { TablePagination } from "@/components/common/table-pagination"
 import { EmptyState } from "@/components/common/empty-state"
 import { ErrorState } from "@/components/common/error-state"
 import { getCurrentOrganization } from "@/lib/supabase/queries/organizations"
-import { getEmailAccountsByClient } from "@/features/email-accounts/queries/get-email-accounts-by-client"
+import { getClientOptions } from "@/lib/supabase/queries/client-options"
+import { getEmailServices } from "@/features/email-services/queries/get-email-services"
+import { EMAIL_SERVICE_STATUSES } from "@/features/email-services/schemas/email-service-schema"
+import { getEmailServiceStatusBadge } from "@/features/email-services/utils/status"
+import { EmailServicesTable } from "@/features/email-services/components/email-services-table"
+import { CreateEmailServiceButton } from "@/features/email-services/components/create-email-service-button"
 
-export default async function CorreosPage() {
+type CorreosPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
+export default async function CorreosPage({ searchParams }: CorreosPageProps) {
+  const params = await searchParams
   const organization = await getCurrentOrganization()
 
   if (!organization) {
     return (
       <PageContainer>
-        <PageHeader title="Correos" description="Buzones de correo de tus clientes." />
+        <PageHeader title="Correos" description="Servicios y buzones de correo de tus clientes." />
         <EmptyState
           icon={MailIcon}
           title="Sin organización"
@@ -24,14 +35,23 @@ export default async function CorreosPage() {
     )
   }
 
-  let clientGroups
+  const page = Number(params.page ?? "1") || 1
+  const search = typeof params.q === "string" ? params.q : undefined
+  const status = typeof params.status === "string" ? params.status : undefined
+  const clientId = typeof params.client === "string" ? params.client : undefined
+
+  let result
+  let clientOptions
   try {
-    clientGroups = await getEmailAccountsByClient(organization.organizationId)
+    ;[result, clientOptions] = await Promise.all([
+      getEmailServices({ organizationId: organization.organizationId, search, status, clientId, page }),
+      getClientOptions(organization.organizationId),
+    ])
   } catch {
     return (
       <PageContainer>
-        <PageHeader title="Correos" description="Buzones de correo de tus clientes." />
-        <ErrorState description="No se pudo cargar la información de correos." />
+        <PageHeader title="Correos" description="Servicios y buzones de correo de tus clientes." />
+        <ErrorState description="No se pudo cargar la lista de servicios de correo." />
       </PageContainer>
     )
   }
@@ -40,39 +60,38 @@ export default async function CorreosPage() {
     <PageContainer>
       <PageHeader
         title="Correos"
-        description="Selecciona un cliente para gestionar sus buzones y servicios."
+        description="Servicios y buzones de correo de tus clientes."
+        actions={<CreateEmailServiceButton clientOptions={clientOptions} />}
       />
 
-      {clientGroups.length === 0 ? (
-        <EmptyState
-          icon={MailIcon}
-          title="Sin servicios de correo"
-          description="Entra en un cliente y añade un servicio de correo para empezar."
-        />
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {clientGroups.map((group) => {
-            const totalAccounts = group.services.reduce((n, s) => n + s.accounts.length, 0)
-            return (
-              <Link
-                key={group.client_id}
-                href={`/correos/${group.client_id}`}
-                className="group flex items-center justify-between rounded-xl border bg-card px-5 py-4 transition-colors hover:bg-accent/50"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-foreground">{group.client_name}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {group.services.length} {group.services.length === 1 ? "servicio" : "servicios"}
-                    {" · "}
-                    {totalAccounts} {totalAccounts === 1 ? "buzón" : "buzones"}
-                  </p>
-                </div>
-                <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            )
-          })}
-        </div>
-      )}
+      <FilterBar
+        searchPlaceholder="Buscar por proveedor o plan..."
+        filters={[
+          {
+            key: "status",
+            label: "Estado",
+            options: EMAIL_SERVICE_STATUSES.map((value) => ({
+              value,
+              label: getEmailServiceStatusBadge(value).label,
+            })),
+          },
+          {
+            key: "client",
+            label: "Cliente",
+            options: clientOptions.map((c) => ({ value: c.id, label: c.display_name })),
+          },
+        ]}
+      />
+
+      <EmailServicesTable emailServices={result.emailServices} clientOptions={clientOptions} />
+
+      <TablePagination
+        page={result.page}
+        pageSize={result.pageSize}
+        total={result.total}
+        basePath="/correos"
+        searchParams={params as Record<string, string | undefined>}
+      />
     </PageContainer>
   )
 }
