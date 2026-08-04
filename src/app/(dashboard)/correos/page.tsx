@@ -1,31 +1,93 @@
+import Link from "next/link"
 import { MailIcon } from "lucide-react"
 
 import { PageContainer } from "@/components/common/page-container"
 import { PageHeader } from "@/components/common/page-header"
-import { FilterBar } from "@/components/common/filter-bar"
-import { TablePagination } from "@/components/common/table-pagination"
 import { EmptyState } from "@/components/common/empty-state"
 import { ErrorState } from "@/components/common/error-state"
+import { StatusBadge } from "@/components/common/status-badge"
+import { DataTable, type DataTableColumn } from "@/components/tables/data-table"
 import { getCurrentOrganization } from "@/lib/supabase/queries/organizations"
 import { getClientOptions } from "@/lib/supabase/queries/client-options"
-import { getEmailServices } from "@/features/email-services/queries/get-email-services"
-import { EMAIL_SERVICE_STATUSES } from "@/features/email-services/schemas/email-service-schema"
-import { getEmailServiceStatusBadge } from "@/features/email-services/utils/status"
-import { EmailServicesTable } from "@/features/email-services/components/email-services-table"
+import { getEmailAccountsByClient, type ClientEmailGroup } from "@/features/email-accounts/queries/get-email-accounts-by-client"
 import { CreateEmailServiceButton } from "@/features/email-services/components/create-email-service-button"
 
-type CorreosPageProps = {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+type ClientSummaryRow = {
+  client_id: string
+  client_name: string
+  service_count: number
+  account_count: number
+  status: "active" | "pending" | "suspended" | "expired" | "cancelled" | "none"
 }
 
-export default async function CorreosPage({ searchParams }: CorreosPageProps) {
-  const params = await searchParams
+const STATUS_PRIORITY = ["expired", "suspended", "pending", "cancelled", "active"] as const
+
+function aggregateStatus(group: ClientEmailGroup): ClientSummaryRow["status"] {
+  if (group.services.length === 0) return "none"
+  const statuses = new Set(group.services.map((s) => s.status))
+  for (const s of STATUS_PRIORITY) {
+    if (statuses.has(s)) return s
+  }
+  return "active"
+}
+
+const STATUS_LABEL: Record<ClientSummaryRow["status"], string> = {
+  active: "Activo",
+  pending: "Pendiente",
+  suspended: "Suspendido",
+  expired: "Expirado",
+  cancelled: "Cancelado",
+  none: "Sin servicios",
+}
+
+const STATUS_TONE: Record<ClientSummaryRow["status"], "success" | "warning" | "destructive" | "neutral"> = {
+  active: "success",
+  pending: "warning",
+  suspended: "destructive",
+  expired: "destructive",
+  cancelled: "neutral",
+  none: "neutral",
+}
+
+const COLUMNS: DataTableColumn<ClientSummaryRow>[] = [
+  {
+    key: "client_name",
+    header: "Cliente",
+    cell: (row) => (
+      <Link href={`/correos/${row.client_id}`} className="font-medium text-foreground hover:underline">
+        {row.client_name}
+      </Link>
+    ),
+  },
+  {
+    key: "service_count",
+    header: "Servicios",
+    cell: (row) => <span className="text-muted-foreground">{row.service_count}</span>,
+  },
+  {
+    key: "account_count",
+    header: "Buzones",
+    cell: (row) => <span className="text-muted-foreground">{row.account_count}</span>,
+  },
+  {
+    key: "status",
+    header: "Estado",
+    cell: (row) =>
+      row.status === "none" ? (
+        <span className="text-xs text-muted-foreground">—</span>
+      ) : (
+        <StatusBadge tone={STATUS_TONE[row.status]} label={STATUS_LABEL[row.status]} />
+      ),
+  },
+]
+
+export default async function CorreosPage() {
   const organization = await getCurrentOrganization()
 
   if (!organization) {
     return (
       <PageContainer>
-        <PageHeader title="Correos" description="Servicios y buzones de correo de tus clientes." />
+        <PageHeader title="Correos" description="Buzones de correo de tus clientes." />
         <EmptyState
           icon={MailIcon}
           title="Sin organización"
@@ -35,62 +97,44 @@ export default async function CorreosPage({ searchParams }: CorreosPageProps) {
     )
   }
 
-  const page = Number(params.page ?? "1") || 1
-  const search = typeof params.q === "string" ? params.q : undefined
-  const status = typeof params.status === "string" ? params.status : undefined
-  const clientId = typeof params.client === "string" ? params.client : undefined
-
-  let result
+  let clientGroups
   let clientOptions
   try {
-    ;[result, clientOptions] = await Promise.all([
-      getEmailServices({ organizationId: organization.organizationId, search, status, clientId, page }),
+    ;[clientGroups, clientOptions] = await Promise.all([
+      getEmailAccountsByClient(organization.organizationId),
       getClientOptions(organization.organizationId),
     ])
   } catch {
     return (
       <PageContainer>
-        <PageHeader title="Correos" description="Servicios y buzones de correo de tus clientes." />
-        <ErrorState description="No se pudo cargar la lista de servicios de correo." />
+        <PageHeader title="Correos" description="Buzones de correo de tus clientes." />
+        <ErrorState description="No se pudo cargar la información de correos." />
       </PageContainer>
     )
   }
+
+  const rows: ClientSummaryRow[] = clientGroups.map((group) => ({
+    client_id: group.client_id,
+    client_name: group.client_name,
+    service_count: group.services.length,
+    account_count: group.services.reduce((n, s) => n + s.accounts.length, 0),
+    status: aggregateStatus(group),
+  }))
 
   return (
     <PageContainer>
       <PageHeader
         title="Correos"
-        description="Servicios y buzones de correo de tus clientes."
+        description="Buzones de correo organizados por cliente."
         actions={<CreateEmailServiceButton clientOptions={clientOptions} />}
       />
 
-      <FilterBar
-        searchPlaceholder="Buscar por proveedor o plan..."
-        filters={[
-          {
-            key: "status",
-            label: "Estado",
-            options: EMAIL_SERVICE_STATUSES.map((value) => ({
-              value,
-              label: getEmailServiceStatusBadge(value).label,
-            })),
-          },
-          {
-            key: "client",
-            label: "Cliente",
-            options: clientOptions.map((c) => ({ value: c.id, label: c.display_name })),
-          },
-        ]}
-      />
-
-      <EmailServicesTable emailServices={result.emailServices} clientOptions={clientOptions} />
-
-      <TablePagination
-        page={result.page}
-        pageSize={result.pageSize}
-        total={result.total}
-        basePath="/correos"
-        searchParams={params as Record<string, string | undefined>}
+      <DataTable
+        columns={COLUMNS}
+        rows={rows}
+        getRowId={(row) => row.client_id}
+        emptyTitle="Sin servicios de correo"
+        emptyDescription="Añade un servicio de correo a un cliente para empezar."
       />
     </PageContainer>
   )
