@@ -176,6 +176,16 @@ export default async function PagarPage({ params }: PageProps) {
             <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center dark:border-green-800 dark:bg-green-950/30">
               <p className="font-semibold text-green-700 dark:text-green-400">Esta factura ya está pagada.</p>
               <p className="mt-1 text-sm text-green-600 dark:text-green-500">Gracias por tu pago.</p>
+              <a
+                href={`/api/pay/invoice-pdf/${token}`}
+                download
+                className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800 transition-colors dark:bg-green-600 dark:hover:bg-green-700"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Descargar factura PDF
+              </a>
             </div>
           ) : (
             <PaymentOptions

@@ -45,6 +45,9 @@ export async function createClient(input: ClientInput): Promise<ActionResult> {
     .single()
 
   if (error) {
+    if (error.code === "23505" && error.message.includes("uq_clients_org_tax_id")) {
+      return { error: "Ya existe un cliente activo con ese NIF/CIF en esta organización." }
+    }
     return { error: "No se pudo crear el cliente. " + error.message }
   }
 

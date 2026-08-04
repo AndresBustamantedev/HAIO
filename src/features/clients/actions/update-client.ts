@@ -36,6 +36,9 @@ export async function updateClient(clientId: string, input: ClientInput): Promis
     .eq("id", clientId)
 
   if (error) {
+    if (error.code === "23505" && error.message.includes("uq_clients_org_tax_id")) {
+      return { error: "Ya existe un cliente activo con ese NIF/CIF en esta organización." }
+    }
     return { error: "No se pudo actualizar el cliente. " + error.message }
   }
 
