@@ -8,6 +8,8 @@ export type EmailAccountRow = {
   display_name: string | null
   status: string
   has_password: boolean
+  quota_mb: number | null
+  forwards_to: string[]
   notes: string | null
 }
 
@@ -53,7 +55,7 @@ export async function getEmailAccountsByClient(
 
   const { data: accounts } = await (supabase as any)
     .from("email_accounts")
-    .select("id, address, display_name, status, notes, password_ciphertext, email_service_id")
+    .select("id, address, display_name, status, quota_mb, forwards_to, notes, password_ciphertext, email_service_id")
     .in("email_service_id", serviceIds)
     .is("deleted_at", null)
     .order("address")
@@ -69,6 +71,8 @@ export async function getEmailAccountsByClient(
       display_name: a.display_name,
       status: a.status,
       has_password: !!a.password_ciphertext,
+      quota_mb: a.quota_mb ?? null,
+      forwards_to: a.forwards_to ?? [],
       notes: a.notes,
     })
   }

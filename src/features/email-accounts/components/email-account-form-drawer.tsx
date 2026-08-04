@@ -37,7 +37,7 @@ function EmailAccountFormDrawer({ open, onOpenChange, serviceOptions, account }:
                 display_name: account.display_name ?? "",
                 status: account.status as "active" | "inactive" | "suspended",
                 quota_mb: account.quota_mb != null ? String(account.quota_mb) : "",
-                forwards_to: account.forwards_to.join(", "),
+                forwards_to: (account.forwards_to ?? []).join(", "),
                 notes: account.notes ?? "",
               }
             : undefined

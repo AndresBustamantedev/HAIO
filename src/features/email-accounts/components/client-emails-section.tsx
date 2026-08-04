@@ -118,7 +118,20 @@ export function ClientEmailsSection({
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       <EmailAccountRowActions
-                        account={{ id: account.id, address: account.address, display_name: account.display_name, status: account.status, notes: account.notes, email_service_id: svc.id, organization_id: "" } as any}
+                        account={{
+                          id: account.id,
+                          address: account.address,
+                          display_name: account.display_name,
+                          status: account.status,
+                          quota_mb: account.quota_mb,
+                          forwards_to: account.forwards_to,
+                          notes: account.notes,
+                          email_service_id: svc.id,
+                          organization_id: "",
+                          deleted_at: null,
+                          created_at: "",
+                          updated_at: "",
+                        }}
                         serviceOptions={serviceOptions}
                       />
                     </td>
