@@ -8,6 +8,7 @@ import {
   emailAccountSchema,
   type EmailAccountInput,
 } from "@/features/email-accounts/schemas/email-account-schema"
+import { encryptSecret } from "@/features/integrations/services/encryption"
 
 type ActionResult = { error: string | null }
 
@@ -33,7 +34,16 @@ export async function createEmailAccount(input: EmailAccountInput): Promise<Acti
   const supabase = await createClient()
   const d = parsed.data
 
-  const { error } = await supabase.from("email_accounts").insert({
+  let passwordCiphertext: Buffer | undefined
+  if (d.password) {
+    try {
+      passwordCiphertext = encryptSecret(d.password).buffer
+    } catch {
+      return { error: "No se pudo cifrar la contraseña." }
+    }
+  }
+
+  const { error } = await (supabase as any).from("email_accounts").insert({
     organization_id: organization.organizationId,
     email_service_id: d.email_service_id,
     address: d.address,
@@ -42,6 +52,7 @@ export async function createEmailAccount(input: EmailAccountInput): Promise<Acti
     quota_mb: d.quota_mb ? Number(d.quota_mb) : null,
     forwards_to: parseForwardsTo(d.forwards_to),
     notes: d.notes || null,
+    ...(passwordCiphertext ? { password_ciphertext: `\\x${passwordCiphertext.toString("hex")}` } : {}),
   })
 
   if (error) {

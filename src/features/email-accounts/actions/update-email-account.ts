@@ -7,6 +7,7 @@ import {
   emailAccountSchema,
   type EmailAccountInput,
 } from "@/features/email-accounts/schemas/email-account-schema"
+import { encryptSecret } from "@/features/integrations/services/encryption"
 
 type ActionResult = { error: string | null }
 
@@ -27,7 +28,16 @@ export async function updateEmailAccount(id: string, input: EmailAccountInput): 
   const supabase = await createClient()
   const d = parsed.data
 
-  const { error } = await supabase
+  let passwordCiphertext: Buffer | undefined
+  if (d.password) {
+    try {
+      passwordCiphertext = encryptSecret(d.password).buffer
+    } catch {
+      return { error: "No se pudo cifrar la contraseña." }
+    }
+  }
+
+  const { error } = await (supabase as any)
     .from("email_accounts")
     .update({
       email_service_id: d.email_service_id,
@@ -37,6 +47,9 @@ export async function updateEmailAccount(id: string, input: EmailAccountInput): 
       quota_mb: d.quota_mb ? Number(d.quota_mb) : null,
       forwards_to: parseForwardsTo(d.forwards_to),
       notes: d.notes || null,
+      ...(passwordCiphertext
+        ? { password_ciphertext: `\\x${passwordCiphertext.toString("hex")}` }
+        : {}),
     })
     .eq("id", id)
 

@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -92,28 +92,32 @@ function PortalHeader({
           </Button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" className="rounded-full" />}>
+            <DropdownMenuTrigger className="rounded-full p-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <Avatar className="size-7">
                 <AvatarFallback className="text-xs">{initials}</AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="flex flex-col gap-0.5 font-normal">
-                <span className="truncate text-sm font-medium text-foreground">{clientName}</span>
+              <div className="px-2 py-1.5">
+                <p className="truncate text-sm font-medium text-foreground">{clientName}</p>
                 {userEmail ? (
-                  <span className="truncate text-xs text-muted-foreground">{userEmail}</span>
+                  <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
                 ) : null}
-              </DropdownMenuLabel>
+              </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem render={<Link href="/portal/perfil" />}>
-                <UserIcon />
-                Mi perfil
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuItem render={<Link href="/portal/perfil" />}>
+                  <UserIcon />
+                  Mi perfil
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" onClick={onSignOut}>
-                <LogOutIcon />
-                Cerrar sesión
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuItem variant="destructive" onClick={onSignOut}>
+                  <LogOutIcon />
+                  Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

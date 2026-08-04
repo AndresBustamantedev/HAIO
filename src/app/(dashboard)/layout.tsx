@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { AppHeader } from "@/components/layout/app-header";
@@ -5,6 +6,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { signOut } from "@/features/auth/actions/sign-out";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrganization } from "@/lib/supabase/queries/organizations";
+import { isStaffMember } from "@/lib/supabase/queries/portal";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -18,7 +20,12 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
       data: { user },
     },
     organization,
-  ] = await Promise.all([supabase.auth.getUser(), getCurrentOrganization()]);
+    isStaff,
+  ] = await Promise.all([supabase.auth.getUser(), getCurrentOrganization(), isStaffMember()]);
+
+  if (!isStaff) {
+    redirect("/portal");
+  }
 
   let unreadNotifications = 0;
   if (user) {

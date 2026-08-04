@@ -3,10 +3,11 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { PanelLeftCloseIcon, PanelLeftIcon } from "lucide-react"
+import { LogOutIcon, PanelLeftCloseIcon, PanelLeftIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { NAV_ITEMS } from "@/lib/navigation"
+import { signOut } from "@/features/auth/actions/sign-out"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -105,11 +106,23 @@ function AppSidebar({ organizationName, userEmail }: AppSidebarProps) {
               )}
             </div>
           )}
-          <div className="p-2 pt-0">
+          <div className={cn("flex gap-1 p-2 pt-0", collapsed && "flex-col")}>
+            <form action={signOut} className="flex-1">
+              <Button
+                type="submit"
+                variant="ghost"
+                size="icon-sm"
+                className="w-full justify-center text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10"
+                aria-label="Cerrar sesión"
+              >
+                <LogOutIcon />
+                {!collapsed && <span className="ml-1 text-xs">Salir</span>}
+              </Button>
+            </form>
             <Button
               variant="ghost"
               size="icon-sm"
-              className="w-full justify-center text-sidebar-foreground/50 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent"
+              className="text-sidebar-foreground/50 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent"
               onClick={() => setCollapsed((value) => !value)}
               aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
             >

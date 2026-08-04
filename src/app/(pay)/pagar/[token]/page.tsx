@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { verifyPaymentToken } from '@/lib/payment-token'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { PaymentOptions } from './payment-options'
+import { BackButton } from './back-button'
 
 type PageProps = { params: Promise<{ token: string }> }
 
@@ -106,6 +107,7 @@ export default async function PagarPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
+      <BackButton />
       {/* Header */}
       <div className="mb-8 text-center">
         <p className="text-sm font-medium text-muted-foreground">Factura de</p>

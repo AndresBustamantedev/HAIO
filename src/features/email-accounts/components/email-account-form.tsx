@@ -53,6 +53,7 @@ function EmailAccountForm({ serviceOptions, defaultValues, onSubmit, onSuccess, 
       email_service_id: "",
       address: "",
       display_name: "",
+      password: "",
       status: "active",
       quota_mb: "",
       forwards_to: "",
@@ -112,6 +113,19 @@ function EmailAccountForm({ serviceOptions, defaultValues, onSubmit, onSuccess, 
               <FormItem>
                 <FormLabel>Nombre mostrado</FormLabel>
                 <FormControl render={<Input placeholder="Juan García" {...field} />} />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Contraseña</FormLabel>
+                <FormControl render={<Input type="text" placeholder="Dejar vacío para no cambiar" {...field} />} />
+                <p className="text-xs text-muted-foreground">Se guarda cifrada. Déjala vacía para mantener la actual.</p>
                 <FormMessage />
               </FormItem>
             )}
