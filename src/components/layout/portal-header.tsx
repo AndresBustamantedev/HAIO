@@ -24,6 +24,7 @@ type PortalHeaderProps = {
   canViewInvoices: boolean
   canViewDocuments: boolean
   canCreateTickets: boolean
+  canViewEmails: boolean
   onSignOut?: () => void
 }
 
@@ -34,6 +35,7 @@ function PortalHeader({
   canViewInvoices,
   canViewDocuments,
   canCreateTickets,
+  canViewEmails,
   onSignOut,
 }: PortalHeaderProps) {
   const pathname = usePathname()
@@ -45,6 +47,7 @@ function PortalHeader({
     { href: "/portal/proyectos", label: "Proyectos", always: canViewProjects },
     { href: "/portal/facturas", label: "Facturas", always: canViewInvoices },
     { href: "/portal/documentos", label: "Documentos", always: canViewDocuments },
+    { href: "/portal/correos", label: "Correos", always: canViewEmails },
     { href: "/portal/soporte", label: "Soporte", always: canCreateTickets },
   ].filter((l) => l.always)
 

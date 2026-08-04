@@ -3,6 +3,7 @@ import { UserIcon, CalendarIcon } from "lucide-react"
 import { StatusBadge } from "@/components/common/status-badge"
 import { EmailAccountRowActions } from "@/features/email-accounts/components/email-account-row-actions"
 import { RevealPasswordButton } from "@/features/email-accounts/components/reveal-password-button"
+import { PortalVisibilityToggle } from "@/features/email-services/components/portal-visibility-toggle"
 import type { ClientEmailGroup } from "@/features/email-accounts/queries/get-email-accounts-by-client"
 import type { EmailServiceOption } from "@/features/email-accounts/types"
 
@@ -77,6 +78,9 @@ export function ClientEmailsSection({
                 Vence {formatDate(svc.expires_on)}
               </span>
             )}
+            <div className="ml-auto">
+              <PortalVisibilityToggle serviceId={svc.id} visible={svc.visible_in_portal} />
+            </div>
           </div>
 
           {/* Accounts table */}
