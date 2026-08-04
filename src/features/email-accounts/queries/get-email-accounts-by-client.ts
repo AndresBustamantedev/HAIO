@@ -30,10 +30,11 @@ export type ClientEmailGroup = {
 
 export async function getEmailAccountsByClient(
   organizationId: string,
+  clientId?: string,
 ): Promise<ClientEmailGroup[]> {
   const supabase = await createClient()
 
-  const { data: services, error } = await supabase
+  let servicesQuery = supabase
     .from("email_services")
     .select(`
       id,
@@ -46,6 +47,10 @@ export async function getEmailAccountsByClient(
     .eq("organization_id", organizationId)
     .is("deleted_at", null)
     .order("provider_name")
+
+  if (clientId) servicesQuery = servicesQuery.eq("client_id", clientId)
+
+  const { data: services, error } = await servicesQuery
 
   if (error || !services) return []
 

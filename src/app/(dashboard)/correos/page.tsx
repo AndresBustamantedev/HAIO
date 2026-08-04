@@ -1,16 +1,12 @@
-import { MailIcon } from "lucide-react"
+import Link from "next/link"
+import { MailIcon, ChevronRightIcon } from "lucide-react"
 
 import { PageContainer } from "@/components/common/page-container"
 import { PageHeader } from "@/components/common/page-header"
 import { EmptyState } from "@/components/common/empty-state"
 import { ErrorState } from "@/components/common/error-state"
 import { getCurrentOrganization } from "@/lib/supabase/queries/organizations"
-import { getClientOptions } from "@/lib/supabase/queries/client-options"
 import { getEmailAccountsByClient } from "@/features/email-accounts/queries/get-email-accounts-by-client"
-import { getEmailServiceOptions } from "@/features/email-accounts/queries/get-email-accounts"
-import { CreateEmailServiceButton } from "@/features/email-services/components/create-email-service-button"
-import { CreateEmailAccountButton } from "@/features/email-accounts/components/create-email-account-button"
-import { ClientEmailsSection } from "@/features/email-accounts/components/client-emails-section"
 
 export default async function CorreosPage() {
   const organization = await getCurrentOrganization()
@@ -29,14 +25,8 @@ export default async function CorreosPage() {
   }
 
   let clientGroups
-  let clientOptions
-  let serviceOptions
   try {
-    ;[clientGroups, clientOptions, serviceOptions] = await Promise.all([
-      getEmailAccountsByClient(organization.organizationId),
-      getClientOptions(organization.organizationId),
-      getEmailServiceOptions(organization.organizationId),
-    ])
+    clientGroups = await getEmailAccountsByClient(organization.organizationId)
   } catch {
     return (
       <PageContainer>
@@ -50,26 +40,37 @@ export default async function CorreosPage() {
     <PageContainer>
       <PageHeader
         title="Correos"
-        description="Buzones de correo organizados por cliente y proveedor."
-        actions={
-          <div className="flex items-center gap-2">
-            <CreateEmailAccountButton serviceOptions={serviceOptions} />
-            <CreateEmailServiceButton clientOptions={clientOptions} />
-          </div>
-        }
+        description="Selecciona un cliente para gestionar sus buzones y servicios."
       />
 
       {clientGroups.length === 0 ? (
         <EmptyState
           icon={MailIcon}
           title="Sin servicios de correo"
-          description="Añade un servicio de correo para empezar a gestionar buzones."
+          description="Entra en un cliente y añade un servicio de correo para empezar."
         />
       ) : (
-        <div className="flex flex-col gap-6">
-          {clientGroups.map((group) => (
-            <ClientEmailsSection key={group.client_id} group={group} serviceOptions={serviceOptions} />
-          ))}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {clientGroups.map((group) => {
+            const totalAccounts = group.services.reduce((n, s) => n + s.accounts.length, 0)
+            return (
+              <Link
+                key={group.client_id}
+                href={`/correos/${group.client_id}`}
+                className="group flex items-center justify-between rounded-xl border bg-card px-5 py-4 transition-colors hover:bg-accent/50"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-foreground">{group.client_name}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {group.services.length} {group.services.length === 1 ? "servicio" : "servicios"}
+                    {" · "}
+                    {totalAccounts} {totalAccounts === 1 ? "buzón" : "buzones"}
+                  </p>
+                </div>
+                <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            )
+          })}
         </div>
       )}
     </PageContainer>

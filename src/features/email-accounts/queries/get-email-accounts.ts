@@ -65,3 +65,22 @@ export async function getEmailServiceOptions(organizationId: string): Promise<Em
 
   return data
 }
+
+export async function getEmailServiceOptionsByClient(
+  organizationId: string,
+  clientId: string,
+): Promise<EmailServiceOption[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("email_services")
+    .select("id, provider_name")
+    .eq("organization_id", organizationId)
+    .eq("client_id", clientId)
+    .is("deleted_at", null)
+    .order("provider_name", { ascending: true })
+
+  if (error || !data) return []
+
+  return data
+}

@@ -14,9 +14,10 @@ type EmailServiceFormDrawerProps = {
   onOpenChange: (open: boolean) => void
   clientOptions: ClientOption[]
   emailService?: EmailServiceWithClient
+  defaultClientId?: string
 }
 
-function EmailServiceFormDrawer({ open, onOpenChange, clientOptions, emailService }: EmailServiceFormDrawerProps) {
+function EmailServiceFormDrawer({ open, onOpenChange, clientOptions, emailService, defaultClientId }: EmailServiceFormDrawerProps) {
   const router = useRouter()
   const isEdit = !!emailService
 
@@ -42,7 +43,9 @@ function EmailServiceFormDrawer({ open, onOpenChange, clientOptions, emailServic
                 auto_renew: emailService.auto_renew,
                 notes: emailService.notes ?? "",
               }
-            : undefined
+            : defaultClientId
+              ? { client_id: defaultClientId }
+              : undefined
         }
         onSubmit={(values) => (isEdit ? updateEmailService(emailService.id, values) : createEmailService(values))}
         onSuccess={() => {
