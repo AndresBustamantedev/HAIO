@@ -18,16 +18,23 @@ export type PortalEmailService = {
   accounts: PortalEmailAccount[]
 }
 
-export async function getPortalEmails(clientId: string): Promise<PortalEmailService[]> {
+export async function getPortalEmails(
+  clientId: string,
+  projectId?: string,
+): Promise<PortalEmailService[]> {
   const supabase = await createClient()
 
-  const { data: services, error } = await (supabase as any)
+  let q = (supabase as any)
     .from("email_services")
     .select("id, provider_name, plan_name, status, expires_on")
     .eq("client_id", clientId)
     .eq("visible_in_portal", true)
     .is("deleted_at", null)
     .order("provider_name")
+
+  if (projectId) q = q.eq("project_id", projectId)
+
+  const { data: services, error } = await q
 
   if (error || !services || services.length === 0) return []
 

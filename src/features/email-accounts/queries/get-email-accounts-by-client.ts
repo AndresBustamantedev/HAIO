@@ -20,6 +20,7 @@ export type EmailServiceGroup = {
   status: string
   expires_on: string | null
   visible_in_portal: boolean
+  project_id: string | null
   accounts: EmailAccountRow[]
 }
 
@@ -44,6 +45,7 @@ export async function getEmailAccountsByClient(
       status,
       expires_on,
       visible_in_portal,
+      project_id,
       clients!email_services_client_id_fkey(id, display_name)
     `)
     .eq("organization_id", organizationId)
@@ -103,6 +105,7 @@ export async function getEmailAccountsByClient(
       status: svc.status,
       expires_on: svc.expires_on,
       visible_in_portal: svc.visible_in_portal ?? false,
+      project_id: svc.project_id ?? null,
       accounts: accountsByService.get(svc.id) ?? [],
     })
   }

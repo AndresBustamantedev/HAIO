@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/common/page-header"
 import { EmptyState } from "@/components/common/empty-state"
 import { ErrorState } from "@/components/common/error-state"
 import { getCurrentOrganization } from "@/lib/supabase/queries/organizations"
-import { getClientOptions } from "@/lib/supabase/queries/client-options"
+import { getClientOptions, getProjectOptions } from "@/lib/supabase/queries/client-options"
 import { getEmailAccountsByClient } from "@/features/email-accounts/queries/get-email-accounts-by-client"
 import { getEmailServiceOptionsByClient } from "@/features/email-accounts/queries/get-email-accounts"
 import { CreateEmailAccountButton } from "@/features/email-accounts/components/create-email-account-button"
@@ -27,11 +27,13 @@ export default async function ClientCorreosPage({
   let clientGroups
   let serviceOptions
   let clientOptions
+  let allProjects
   try {
-    ;[clientGroups, serviceOptions, clientOptions] = await Promise.all([
+    ;[clientGroups, serviceOptions, clientOptions, allProjects] = await Promise.all([
       getEmailAccountsByClient(organization.organizationId, clientId),
       getEmailServiceOptionsByClient(organization.organizationId, clientId),
       getClientOptions(organization.organizationId),
+      getProjectOptions(organization.organizationId),
     ])
   } catch {
     return (
@@ -76,7 +78,11 @@ export default async function ClientCorreosPage({
           description="Añade un servicio (Zoho, Gmail, etc.) para empezar a registrar buzones."
         />
       ) : (
-        <ClientEmailsSection group={group} serviceOptions={serviceOptions} />
+        <ClientEmailsSection
+          group={group}
+          serviceOptions={serviceOptions}
+          projectOptions={allProjects.filter((p) => p.client_id === clientId).map((p) => ({ id: p.id, name: p.name }))}
+        />
       )}
     </PageContainer>
   )

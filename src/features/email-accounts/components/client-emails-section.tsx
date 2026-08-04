@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/common/status-badge"
 import { EmailAccountRowActions } from "@/features/email-accounts/components/email-account-row-actions"
 import { RevealPasswordButton } from "@/features/email-accounts/components/reveal-password-button"
 import { PortalVisibilityToggle } from "@/features/email-services/components/portal-visibility-toggle"
+import { ProjectAssignSelect, type ProjectOption } from "@/features/email-services/components/project-assign-select"
 import type { ClientEmailGroup } from "@/features/email-accounts/queries/get-email-accounts-by-client"
 import type { EmailServiceOption } from "@/features/email-accounts/types"
 
@@ -45,9 +46,11 @@ function formatDate(iso: string | null) {
 export function ClientEmailsSection({
   group,
   serviceOptions,
+  projectOptions = [],
 }: {
   group: ClientEmailGroup
   serviceOptions: EmailServiceOption[]
+  projectOptions?: ProjectOption[]
 }) {
   return (
     <div className="overflow-hidden rounded-xl border bg-card">
@@ -78,7 +81,14 @@ export function ClientEmailsSection({
                 Vence {formatDate(svc.expires_on)}
               </span>
             )}
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-3">
+              {projectOptions.length > 0 && (
+                <ProjectAssignSelect
+                  serviceId={svc.id}
+                  currentProjectId={svc.project_id}
+                  projectOptions={projectOptions}
+                />
+              )}
               <PortalVisibilityToggle serviceId={svc.id} visible={svc.visible_in_portal} />
             </div>
           </div>

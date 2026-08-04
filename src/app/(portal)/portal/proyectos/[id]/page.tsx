@@ -1,8 +1,9 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
-import { ArrowLeftIcon, GlobeIcon, KeyIcon, ExternalLinkIcon } from "lucide-react"
+import { ArrowLeftIcon, GlobeIcon, KeyIcon, ExternalLinkIcon, MailIcon } from "lucide-react"
 
 import { getPortalSession } from "@/lib/supabase/queries/portal"
+import { getPortalEmails } from "@/features/email-accounts/queries/get-portal-emails"
 import { createClient } from "@/lib/supabase/server"
 import { StatusBadge } from "@/components/common/status-badge"
 import type { StatusBadgeTone } from "@/components/common/status-badge"
@@ -68,6 +69,8 @@ export default async function PortalProyectoDetailPage({ params }: Props) {
     .order("label")
 
   const credentials = (credentialsRaw ?? []) as SharedCredential[]
+
+  const emailServices = await getPortalEmails(session.access.client_id, id)
 
   return (
     <div className="flex flex-col gap-6">
@@ -216,6 +219,62 @@ export default async function PortalProyectoDetailPage({ params }: Props) {
           </ul>
         )}
       </section>
+      {/* Correos del proyecto */}
+      {emailServices.length > 0 && (
+        <section>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+            <MailIcon className="size-4 text-muted-foreground" />
+            Correos
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+              {emailServices.reduce((n, s) => n + s.accounts.length, 0)}
+            </span>
+          </h2>
+          <div className="flex flex-col gap-3">
+            {emailServices.map((svc) => (
+              <div key={svc.id} className="overflow-hidden rounded-xl border bg-card">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b bg-muted/30 px-4 py-2.5">
+                  <span className="font-medium text-sm text-foreground">{svc.provider_name}</span>
+                  {svc.plan_name && (
+                    <span className="text-xs text-muted-foreground">{svc.plan_name}</span>
+                  )}
+                  <StatusBadge
+                    tone={
+                      svc.status === "active" ? "success"
+                      : svc.status === "pending" ? "warning"
+                      : svc.status === "expired" || svc.status === "suspended" ? "destructive"
+                      : "neutral"
+                    }
+                    label={
+                      { active: "Activo", pending: "Pendiente", suspended: "Suspendido",
+                        expired: "Expirado", cancelled: "Cancelado" }[svc.status] ?? svc.status
+                    }
+                  />
+                </div>
+                {svc.accounts.length === 0 ? (
+                  <p className="px-4 py-3 text-sm text-muted-foreground">Sin buzones.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {svc.accounts.map((acc) => (
+                      <li key={acc.id} className="flex items-center justify-between px-4 py-2.5">
+                        <div>
+                          <span className="text-sm font-medium text-foreground">{acc.address}</span>
+                          {acc.display_name && (
+                            <span className="ml-2 text-xs text-muted-foreground">{acc.display_name}</span>
+                          )}
+                        </div>
+                        <StatusBadge
+                          tone={acc.status === "active" ? "success" : acc.status === "suspended" ? "warning" : "neutral"}
+                          label={{ active: "Activa", inactive: "Inactiva", suspended: "Suspendida" }[acc.status] ?? acc.status}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }
