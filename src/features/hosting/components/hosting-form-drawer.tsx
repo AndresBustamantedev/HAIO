@@ -14,9 +14,10 @@ type HostingFormDrawerProps = {
   onOpenChange: (open: boolean) => void
   clientOptions: ClientOption[]
   hosting?: HostingWithClient
+  defaultClientId?: string
 }
 
-function HostingFormDrawer({ open, onOpenChange, clientOptions, hosting }: HostingFormDrawerProps) {
+function HostingFormDrawer({ open, onOpenChange, clientOptions, hosting, defaultClientId }: HostingFormDrawerProps) {
   const router = useRouter()
   const isEdit = !!hosting
 
@@ -44,7 +45,9 @@ function HostingFormDrawer({ open, onOpenChange, clientOptions, hosting }: Hosti
                 auto_renew: hosting.auto_renew,
                 notes: hosting.notes ?? "",
               }
-            : undefined
+            : defaultClientId
+              ? { client_id: defaultClientId }
+              : undefined
         }
         onSubmit={(values) => (isEdit ? updateHosting(hosting.id, values) : createHosting(values))}
         onSuccess={() => {

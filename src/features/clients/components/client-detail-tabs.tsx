@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import {
   GlobeIcon,
@@ -12,6 +13,7 @@ import {
   AlertCircleIcon,
   ExternalLinkIcon,
   ArrowRightIcon,
+  PlusIcon,
 } from "lucide-react"
 
 import { Tabs, TabsList, TabsPanel, TabsTrigger } from "@/components/ui/tabs"
@@ -21,6 +23,25 @@ import { RevealCredentialButton } from "@/features/credentials/components/reveal
 import { getInvoiceStatusBadge } from "@/features/invoices/utils/status"
 import { AddClientServiceButton } from "@/features/client-services/components/add-client-service-button"
 import { ClientServiceActions } from "@/features/client-services/components/client-service-actions"
+import { ContactFormDrawer } from "@/features/contacts/components/contact-form-drawer"
+import { ContactRowActions } from "@/features/contacts/components/contact-row-actions"
+import { ProjectFormDrawer } from "@/features/projects/components/project-form-drawer"
+import { ProjectRowActions } from "@/features/projects/components/project-row-actions"
+import { DomainFormDrawer } from "@/features/domains/components/domain-form-drawer"
+import { DomainRowActions } from "@/features/domains/components/domain-row-actions"
+import { HostingFormDrawer } from "@/features/hosting/components/hosting-form-drawer"
+import { HostingRowActions } from "@/features/hosting/components/hosting-row-actions"
+import { EmailServiceFormDrawer } from "@/features/email-services/components/email-service-form-drawer"
+import { EmailServiceRowActions } from "@/features/email-services/components/email-service-row-actions"
+import { WebsiteInstallationFormDrawer } from "@/features/website-installations/components/website-installation-form-drawer"
+import { WebsiteInstallationRowActions } from "@/features/website-installations/components/website-installation-row-actions"
+import { BackupConfigFormDrawer } from "@/features/backups/components/backup-config-form-drawer"
+import { BackupConfigRowActions } from "@/features/backups/components/backup-config-row-actions"
+import type { ProjectWithClient } from "@/features/projects/types"
+import type { DomainWithClient } from "@/features/domains/types"
+import type { HostingWithClient } from "@/features/hosting/types"
+import type { EmailServiceWithClient } from "@/features/email-services/types"
+import type { BackupConfigWithClient } from "@/features/backups/types"
 import type { ClientDetail } from "@/features/clients/queries/get-client-detail"
 import type { ServiceOption } from "@/features/services/queries/get-service-options"
 
@@ -651,8 +672,15 @@ function ResumeTab({ detail }: { detail: ClientDetail }) {
 // ----- Infrastructure tab -----
 
 function InfraTab({ detail }: { detail: ClientDetail }) {
-  const { client, domains, hostingAccounts, emailServices, websiteInstallations, backupConfigs } = detail
-  const emailAccounts = emailServices.flatMap((s) => s.email_accounts)
+  const { client, domains, hostingAccounts, emailServices, websiteInstallations, backupConfigs, projects } = detail
+  const clientOption = [{ id: client.id, display_name: client.display_name }]
+  const projectOptions = projects.map((p) => ({ id: p.id, name: p.name, client_id: p.client_id }))
+
+  const [addDomainOpen, setAddDomainOpen] = React.useState(false)
+  const [addHostingOpen, setAddHostingOpen] = React.useState(false)
+  const [addEmailServiceOpen, setAddEmailServiceOpen] = React.useState(false)
+  const [addWebInstallOpen, setAddWebInstallOpen] = React.useState(false)
+  const [addBackupOpen, setAddBackupOpen] = React.useState(false)
 
   return (
     <div className="flex flex-col gap-6">
@@ -660,9 +688,19 @@ function InfraTab({ detail }: { detail: ClientDetail }) {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-semibold text-foreground">Dominios</h3>
-          <Link href={`/dominios?client=${client.id}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-            Gestionar dominios <ArrowRightIcon className="size-3" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setAddDomainOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            >
+              <PlusIcon className="size-3.5" />
+              Añadir
+            </button>
+            <Link href={`/dominios?client=${client.id}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+              Gestionar <ArrowRightIcon className="size-3" />
+            </Link>
+          </div>
         </div>
         {domains.length === 0 ? (
           <EmptyState title="Sin dominios" />
@@ -678,6 +716,11 @@ function InfraTab({ detail }: { detail: ClientDetail }) {
                 <div className="flex items-center gap-4 text-muted-foreground">
                   <span>{d.registrar_name ?? "—"}</span>
                   <span>{fmt(d.expires_on)}</span>
+                  <DomainRowActions
+                    domain={{ ...d, clients: { id: client.id, display_name: client.display_name } } as unknown as DomainWithClient}
+                    clientOptions={clientOption}
+                    projectOptions={projectOptions}
+                  />
                 </div>
               </div>
             ))}
@@ -689,9 +732,19 @@ function InfraTab({ detail }: { detail: ClientDetail }) {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-semibold text-foreground">Hosting</h3>
-          <Link href={`/hosting?client=${client.id}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-            Gestionar hosting <ArrowRightIcon className="size-3" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setAddHostingOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            >
+              <PlusIcon className="size-3.5" />
+              Añadir
+            </button>
+            <Link href={`/hosting?client=${client.id}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+              Gestionar <ArrowRightIcon className="size-3" />
+            </Link>
+          </div>
         </div>
         {hostingAccounts.length === 0 ? (
           <EmptyState title="Sin hosting" />
@@ -711,6 +764,10 @@ function InfraTab({ detail }: { detail: ClientDetail }) {
                     </a>
                   ) : null}
                   <span>{fmt(h.expires_on)}</span>
+                  <HostingRowActions
+                    hosting={{ ...h, clients: { id: client.id, display_name: client.display_name } } as unknown as HostingWithClient}
+                    clientOptions={clientOption}
+                  />
                 </div>
               </div>
             ))}
@@ -718,26 +775,56 @@ function InfraTab({ detail }: { detail: ClientDetail }) {
         )}
       </div>
 
-      {/* Email accounts */}
+      {/* Email services */}
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-semibold text-foreground">Buzones de correo</h3>
-          <Link href={`/correos?client=${client.id}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-            Gestionar correos <ArrowRightIcon className="size-3" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setAddEmailServiceOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            >
+              <PlusIcon className="size-3.5" />
+              Añadir
+            </button>
+            <Link href={`/correos/${client.id}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+              Gestionar <ArrowRightIcon className="size-3" />
+            </Link>
+          </div>
         </div>
-        {emailAccounts.length === 0 ? (
+        {emailServices.length === 0 ? (
           <EmptyState title="Sin buzones" />
         ) : (
-          <div className="rounded-xl border divide-y">
-            {emailAccounts.map((acc) => (
-              <div key={acc.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                <div className="flex items-center gap-3">
-                  <MailIcon className="size-4 text-muted-foreground" />
-                  <span className="font-medium text-foreground">{acc.address}</span>
-                  {acc.display_name ? <span className="text-muted-foreground">{acc.display_name}</span> : null}
+          <div className="flex flex-col gap-3">
+            {emailServices.map((svc) => (
+              <div key={svc.id} className="rounded-xl border overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-b">
+                  <div className="flex items-center gap-2">
+                    <MailIcon className="size-3.5 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">{svc.provider_name}</span>
+                    <StatusBadge tone={svc.status === "active" ? "success" : "neutral"} label={svc.status === "active" ? "Activo" : svc.status} />
+                  </div>
+                  <EmailServiceRowActions
+                    emailService={{ ...svc, clients: { id: client.id, display_name: client.display_name } } as unknown as EmailServiceWithClient}
+                    clientOptions={clientOption}
+                  />
                 </div>
-                <StatusBadge tone={acc.status === "active" ? "success" : "neutral"} label={acc.status === "active" ? "Activo" : acc.status} />
+                {svc.email_accounts.length > 0 ? (
+                  <div className="divide-y">
+                    {svc.email_accounts.map((acc) => (
+                      <div key={acc.id} className="flex items-center justify-between px-4 py-3 text-sm">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-foreground">{acc.address}</span>
+                          {acc.display_name ? <span className="text-muted-foreground">{acc.display_name}</span> : null}
+                        </div>
+                        <StatusBadge tone={acc.status === "active" ? "success" : "neutral"} label={acc.status === "active" ? "Activo" : acc.status} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-4 py-3 text-xs text-muted-foreground">Sin buzones en este servicio</div>
+                )}
               </div>
             ))}
           </div>
@@ -748,9 +835,19 @@ function InfraTab({ detail }: { detail: ClientDetail }) {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-semibold text-foreground">Instalaciones web</h3>
-          <Link href={`/sitios-web?client=${client.id}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-            Gestionar sitios <ArrowRightIcon className="size-3" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setAddWebInstallOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            >
+              <PlusIcon className="size-3.5" />
+              Añadir
+            </button>
+            <Link href={`/sitios-web?client=${client.id}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+              Gestionar <ArrowRightIcon className="size-3" />
+            </Link>
+          </div>
         </div>
         {websiteInstallations.length === 0 ? (
           <EmptyState title="Sin instalaciones" />
@@ -770,6 +867,7 @@ function InfraTab({ detail }: { detail: ClientDetail }) {
                     </a>
                   ) : null}
                   <StatusBadge tone={w.status === "active" ? "success" : "neutral"} label={w.status === "active" ? "Activo" : w.status} />
+                  <WebsiteInstallationRowActions installation={w} clientOptions={clientOption} />
                 </div>
               </div>
             ))}
@@ -778,14 +876,26 @@ function InfraTab({ detail }: { detail: ClientDetail }) {
       </div>
 
       {/* Backups */}
-      {backupConfigs.length > 0 ? (
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-semibold text-foreground">Backups</h3>
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold text-foreground">Backups</h3>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setAddBackupOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            >
+              <PlusIcon className="size-3.5" />
+              Añadir
+            </button>
             <Link href={`/backups?client=${client.id}`} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
               Ver todos <ArrowRightIcon className="size-3" />
             </Link>
           </div>
+        </div>
+        {backupConfigs.length === 0 ? (
+          <EmptyState title="Sin backups" />
+        ) : (
           <div className="rounded-xl border divide-y">
             {backupConfigs.map((b) => (
               <div key={b.id} className="flex items-center justify-between px-4 py-3 text-sm">
@@ -794,12 +904,24 @@ function InfraTab({ detail }: { detail: ClientDetail }) {
                   <span className="font-medium text-foreground">{b.name}</span>
                   <span className="text-muted-foreground capitalize">{b.frequency}</span>
                 </div>
-                <StatusBadge tone={b.status === "successful" ? "success" : b.status === "failed" ? "destructive" : "neutral"} label={b.status} />
+                <div className="flex items-center gap-3">
+                  <StatusBadge tone={b.status === "successful" ? "success" : b.status === "failed" ? "destructive" : "neutral"} label={b.status} />
+                  <BackupConfigRowActions
+                    config={{ ...b, clients: { id: client.id, display_name: client.display_name } } as unknown as BackupConfigWithClient}
+                    clientOptions={clientOption}
+                  />
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      ) : null}
+        )}
+      </div>
+
+      <DomainFormDrawer open={addDomainOpen} onOpenChange={setAddDomainOpen} clientOptions={clientOption} defaultClientId={client.id} projectOptions={projectOptions} />
+      <HostingFormDrawer open={addHostingOpen} onOpenChange={setAddHostingOpen} clientOptions={clientOption} defaultClientId={client.id} />
+      <EmailServiceFormDrawer open={addEmailServiceOpen} onOpenChange={setAddEmailServiceOpen} clientOptions={clientOption} defaultClientId={client.id} />
+      <WebsiteInstallationFormDrawer open={addWebInstallOpen} onOpenChange={setAddWebInstallOpen} clientOptions={clientOption} defaultClientId={client.id} />
+      <BackupConfigFormDrawer open={addBackupOpen} onOpenChange={setAddBackupOpen} clientOptions={clientOption} defaultClientId={client.id} />
     </div>
   )
 }
@@ -811,6 +933,10 @@ function ClientDetailTabs({ detail, serviceOptions }: { detail: ClientDetail; se
 
   const emailAccounts = emailServices.flatMap((s) => s.email_accounts)
   const infraCount = domains.length + hostingAccounts.length + emailServices.length + websiteInstallations.length + backupConfigs.length
+
+  const [addContactOpen, setAddContactOpen] = React.useState(false)
+  const [addProjectOpen, setAddProjectOpen] = React.useState(false)
+  const clientOption = [{ id: client.id, display_name: client.display_name }]
 
   return (
     <Tabs defaultValue="resumen">
@@ -829,28 +955,72 @@ function ClientDetailTabs({ detail, serviceOptions }: { detail: ClientDetail; se
       </TabsPanel>
 
       <TabsPanel value="contacts">
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-semibold text-foreground">
+            {contacts.length > 0 ? `${contacts.length} contacto${contacts.length !== 1 ? "s" : ""}` : "Sin contactos"}
+          </p>
+          <button
+            type="button"
+            onClick={() => setAddContactOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+          >
+            <PlusIcon className="size-3.5" />
+            Añadir contacto
+          </button>
+        </div>
+
         {contacts.length === 0 ? (
-          <EmptyState title="Sin contactos" description="Todavía no se ha registrado ningún contacto." />
+          <EmptyState title="Sin contactos" description="Todavía no se ha registrado ningún contacto para este cliente." />
         ) : (
           <ul className="divide-y rounded-xl border bg-card overflow-hidden">
             {contacts.map((contact) => (
               <li key={contact.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                 <div className="flex flex-col">
                   <span className="font-medium text-foreground">
-                    {contact.full_name} {contact.is_primary ? "· Principal" : ""}
+                    {contact.full_name}
+                    {contact.is_primary ? <span className="ml-1.5 text-xs text-muted-foreground font-normal">Principal</span> : null}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {contact.job_title ?? "—"} · {contact.email ?? "sin email"}
+                    {[contact.job_title, contact.email].filter(Boolean).join(" · ") || "Sin datos de contacto"}
                   </span>
                 </div>
-                <span className="text-muted-foreground">{contact.phone ?? "—"}</span>
+                <div className="flex items-center gap-3">
+                  {contact.phone ? (
+                    <span className="text-muted-foreground">{contact.phone}</span>
+                  ) : null}
+                  <ContactRowActions
+                    contact={{ ...contact, clients: { id: client.id, display_name: client.display_name } }}
+                    clientOptions={clientOption}
+                  />
+                </div>
               </li>
             ))}
           </ul>
         )}
+
+        <ContactFormDrawer
+          open={addContactOpen}
+          onOpenChange={setAddContactOpen}
+          clientOptions={clientOption}
+          contact={undefined}
+        />
       </TabsPanel>
 
       <TabsPanel value="projects">
+        <div className="flex items-center justify-between mb-3">
+          <p className="font-semibold text-foreground">
+            {projects.length > 0 ? `${projects.length} proyecto${projects.length !== 1 ? "s" : ""}` : "Sin proyectos"}
+          </p>
+          <button
+            type="button"
+            onClick={() => setAddProjectOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+          >
+            <PlusIcon className="size-3.5" />
+            Añadir proyecto
+          </button>
+        </div>
+
         {projects.length === 0 ? (
           <EmptyState title="Sin proyectos" description="Este cliente todavía no tiene proyectos." />
         ) : (
@@ -860,11 +1030,24 @@ function ClientDetailTabs({ detail, serviceOptions }: { detail: ClientDetail; se
                 <Link href={`/proyectos/${project.id}`} className="font-medium text-foreground hover:underline">
                   {project.name}
                 </Link>
-                <span className="text-muted-foreground">{project.status}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-muted-foreground">{project.status}</span>
+                  <ProjectRowActions
+                    project={{ ...project, clients: { id: client.id, display_name: client.display_name } } as unknown as ProjectWithClient}
+                    clientOptions={clientOption}
+                  />
+                </div>
               </li>
             ))}
           </ul>
         )}
+
+        <ProjectFormDrawer
+          open={addProjectOpen}
+          onOpenChange={setAddProjectOpen}
+          clientOptions={clientOption}
+          defaultClientId={client.id}
+        />
       </TabsPanel>
 
       <TabsPanel value="infraestructura">

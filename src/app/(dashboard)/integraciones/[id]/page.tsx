@@ -86,7 +86,7 @@ export default async function IntegracionDetailPage({ params }: Props) {
   let resources, runs, alerts, clientOptions
   try {
     const [resourceResult, runResult, alertResult, clients] = await Promise.all([
-      getExternalResources({ organizationId: organization.organizationId, integrationId: id, pageSize: 100 }),
+      getExternalResources({ organizationId: organization.organizationId, integrationId: id, pageSize: 1000 }),
       getSyncRuns({ organizationId: organization.organizationId, integrationId: id, pageSize: 10 }),
       getInfrastructureAlerts({ organizationId: organization.organizationId, integrationId: id, pageSize: 10 }),
       getClientOptions(organization.organizationId),

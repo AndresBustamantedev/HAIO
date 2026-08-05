@@ -7,16 +7,19 @@ import { FormDrawer } from "@/components/common/form-drawer"
 import { DomainForm } from "@/features/domains/components/domain-form"
 import { createDomain } from "@/features/domains/actions/create-domain"
 import { updateDomain } from "@/features/domains/actions/update-domain"
-import type { ClientOption, DomainWithClient } from "@/features/domains/types"
+import type { ClientOption, DomainWithClient, ProjectOption } from "@/features/domains/types"
 
 type DomainFormDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   clientOptions: ClientOption[]
   domain?: DomainWithClient
+  defaultClientId?: string
+  defaultProjectId?: string
+  projectOptions?: ProjectOption[]
 }
 
-function DomainFormDrawer({ open, onOpenChange, clientOptions, domain }: DomainFormDrawerProps) {
+function DomainFormDrawer({ open, onOpenChange, clientOptions, domain, defaultClientId, defaultProjectId, projectOptions }: DomainFormDrawerProps) {
   const router = useRouter()
   const isEdit = !!domain
 
@@ -29,6 +32,7 @@ function DomainFormDrawer({ open, onOpenChange, clientOptions, domain }: DomainF
     >
       <DomainForm
         clientOptions={clientOptions}
+        projectOptions={projectOptions}
         defaultValues={
           domain
             ? {
@@ -43,8 +47,11 @@ function DomainFormDrawer({ open, onOpenChange, clientOptions, domain }: DomainF
                 managed_by_us: domain.managed_by_us,
                 privacy_enabled: domain.privacy_enabled,
                 notes: domain.notes ?? "",
+                project_id: domain.project_id ?? "",
               }
-            : undefined
+            : defaultClientId
+              ? { client_id: defaultClientId, project_id: defaultProjectId ?? "" }
+              : undefined
         }
         onSubmit={(values) => (isEdit ? updateDomain(domain.id, values) : createDomain(values))}
         onSuccess={() => {

@@ -15,6 +15,7 @@ export const BILLING_INTERVALS = [
 export const subscriptionSchema = z.object({
   client_id: z.string().uuid("Selecciona un cliente."),
   service_id: z.string().uuid("Selecciona un servicio."),
+  project_id: z.string().uuid().optional().or(z.literal("")),
   status: z.enum(SUBSCRIPTION_STATUSES),
   billing_interval: z.enum(BILLING_INTERVALS),
   amount: z.string().trim().min(1, "El importe es obligatorio.").refine((v) => !Number.isNaN(Number(v)), "Importe inválido."),

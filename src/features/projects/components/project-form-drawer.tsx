@@ -15,11 +15,12 @@ type ProjectFormDrawerProps = {
   clientOptions: ClientOption[]
   /** Omit for create mode; pass the project being edited for edit mode. */
   project?: ProjectWithClient
+  defaultClientId?: string
   onSaved?: () => void
 }
 
 /** Single source of truth for the create/edit project drawer, used by the list toolbar, row actions, and the detail page. */
-function ProjectFormDrawer({ open, onOpenChange, clientOptions, project, onSaved }: ProjectFormDrawerProps) {
+function ProjectFormDrawer({ open, onOpenChange, clientOptions, project, defaultClientId, onSaved }: ProjectFormDrawerProps) {
   const router = useRouter()
   const isEdit = !!project
 
@@ -46,7 +47,9 @@ function ProjectFormDrawer({ open, onOpenChange, clientOptions, project, onSaved
                 repository_url: project.repository_url ?? "",
                 production_url: project.production_url ?? "",
               }
-            : undefined
+            : defaultClientId
+              ? { client_id: defaultClientId }
+              : undefined
         }
         onSubmit={(values) => (isEdit ? updateProject(project.id, values) : createProject(values))}
         onSuccess={() => {

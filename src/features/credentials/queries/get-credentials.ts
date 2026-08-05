@@ -43,7 +43,9 @@ export async function getCredentials(params: GetCredentialsParams): Promise<GetC
     query = query.eq("type", params.type as never)
   }
 
-  if (params.clientId) {
+  if (params.clientId === "internas") {
+    query = query.is("client_id", null)
+  } else if (params.clientId) {
     query = query.eq("client_id", params.clientId)
   }
 

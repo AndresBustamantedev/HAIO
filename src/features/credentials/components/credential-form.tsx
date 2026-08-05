@@ -3,12 +3,12 @@
 import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-
-import { LockIcon, EyeIcon } from "lucide-react"
+import { LockIcon, EyeIcon, FolderIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -27,16 +27,25 @@ import {
 import { CREDENTIAL_TYPES, credentialSchema, type CredentialInput } from "@/features/credentials/schemas/credential-schema"
 import { getCredentialTypeLabel } from "@/features/credentials/utils/labels"
 import type { ClientOption } from "@/features/credentials/types"
+import type { ProjectOption } from "@/lib/supabase/queries/client-options"
 
 type CredentialFormProps = {
   defaultValues?: Partial<CredentialInput>
   clientOptions: ClientOption[]
+  projectOptions: ProjectOption[]
   onSubmit: (values: CredentialInput) => Promise<{ error: string | null }>
   onSuccess: () => void
   submitLabel?: string
 }
 
-function CredentialForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitLabel = "Guardar" }: CredentialFormProps) {
+function CredentialForm({
+  defaultValues,
+  clientOptions,
+  projectOptions,
+  onSubmit,
+  onSuccess,
+  submitLabel = "Guardar",
+}: CredentialFormProps) {
   const [isPending, startTransition] = React.useTransition()
   const [formError, setFormError] = React.useState<string | null>(null)
 
@@ -46,6 +55,7 @@ function CredentialForm({ defaultValues, clientOptions, onSubmit, onSuccess, sub
       label: "",
       type: "website_admin",
       client_id: "",
+      project_ids: [],
       username: "",
       login_url: "",
       secret_reference: "",
@@ -55,6 +65,38 @@ function CredentialForm({ defaultValues, clientOptions, onSubmit, onSuccess, sub
       ...defaultValues,
     },
   })
+
+  const selectedClientId = form.watch("client_id")
+  const selectedProjectIds = form.watch("project_ids") ?? []
+
+  // Projects filtered by selected client
+  const filteredProjects = React.useMemo(
+    () =>
+      selectedClientId
+        ? projectOptions.filter((p) => p.client_id === selectedClientId)
+        : projectOptions,
+    [selectedClientId, projectOptions],
+  )
+
+  // Clear project_ids when client changes and selected projects don't match new client
+  React.useEffect(() => {
+    if (selectedClientId) {
+      const validIds = new Set(filteredProjects.map((p) => p.id))
+      const current = form.getValues("project_ids") ?? []
+      const filtered = current.filter((id) => validIds.has(id))
+      if (filtered.length !== current.length) {
+        form.setValue("project_ids", filtered)
+      }
+    }
+  }, [selectedClientId, filteredProjects, form])
+
+  function toggleProject(projectId: string, checked: boolean) {
+    const current = form.getValues("project_ids") ?? []
+    form.setValue(
+      "project_ids",
+      checked ? [...current, projectId] : current.filter((id) => id !== projectId),
+    )
+  }
 
   function handleSubmit(values: CredentialInput) {
     setFormError(null)
@@ -116,7 +158,10 @@ function CredentialForm({ defaultValues, clientOptions, onSubmit, onSuccess, sub
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cliente</FormLabel>
-                  <Select value={field.value || "none"} onValueChange={(value) => field.onChange(value === "none" ? "" : value)}>
+                  <Select
+                    value={field.value || "none"}
+                    onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Sin cliente" />
                     </SelectTrigger>
@@ -134,6 +179,40 @@ function CredentialForm({ defaultValues, clientOptions, onSubmit, onSuccess, sub
               )}
             />
           </div>
+
+          {/* Project multi-select */}
+          {filteredProjects.length > 0 && (
+            <FormField
+              control={form.control}
+              name="project_ids"
+              render={() => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5">
+                    <FolderIcon className="size-3.5 text-muted-foreground" />
+                    Proyectos
+                  </FormLabel>
+                  <div className="rounded-md border p-3 space-y-2">
+                    {filteredProjects.map((project) => (
+                      <label
+                        key={project.id}
+                        className="flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={selectedProjectIds.includes(project.id)}
+                          onCheckedChange={(checked) => toggleProject(project.id, !!checked)}
+                        />
+                        <span className="text-sm">{project.name}</span>
+                        {selectedProjectIds.length > 1 && selectedProjectIds.includes(project.id) && (
+                          <span className="ml-auto text-xs text-muted-foreground">Compartida</span>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <FormField

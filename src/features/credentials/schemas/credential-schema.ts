@@ -21,6 +21,7 @@ export const credentialSchema = z.object({
   label: z.string().trim().min(1, "El nombre es obligatorio.").max(200),
   type: z.enum(CREDENTIAL_TYPES),
   client_id: z.string().uuid().optional().or(z.literal("")),
+  project_ids: z.array(z.string().uuid()).optional(),
   username: z.string().trim().max(200).optional().or(z.literal("")),
   login_url: z.string().trim().max(300).optional().or(z.literal("")),
   secret_reference: z.string().trim().max(300).optional().or(z.literal("")),

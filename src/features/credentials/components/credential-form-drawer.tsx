@@ -8,15 +8,25 @@ import { CredentialForm } from "@/features/credentials/components/credential-for
 import { createCredential } from "@/features/credentials/actions/create-credential"
 import { updateCredential } from "@/features/credentials/actions/update-credential"
 import type { ClientOption, CredentialSafeWithClient } from "@/features/credentials/types"
+import type { ProjectOption } from "@/lib/supabase/queries/client-options"
 
 type CredentialFormDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   clientOptions: ClientOption[]
+  projectOptions: ProjectOption[]
   credential?: CredentialSafeWithClient
+  defaultClientId?: string
 }
 
-function CredentialFormDrawer({ open, onOpenChange, clientOptions, credential }: CredentialFormDrawerProps) {
+function CredentialFormDrawer({
+  open,
+  onOpenChange,
+  clientOptions,
+  projectOptions,
+  credential,
+  defaultClientId,
+}: CredentialFormDrawerProps) {
   const router = useRouter()
   const isEdit = !!credential
 
@@ -29,12 +39,14 @@ function CredentialFormDrawer({ open, onOpenChange, clientOptions, credential }:
     >
       <CredentialForm
         clientOptions={clientOptions}
+        projectOptions={projectOptions}
         defaultValues={
           credential
             ? {
                 label: credential.label ?? "",
                 type: credential.type ?? "other",
                 client_id: credential.client_id ?? "",
+                project_ids: credential.project_ids ?? [],
                 username: credential.username ?? "",
                 login_url: credential.login_url ?? "",
                 secret_reference: credential.secret_reference ?? "",
@@ -42,7 +54,9 @@ function CredentialFormDrawer({ open, onOpenChange, clientOptions, credential }:
                 is_shared_with_client: credential.is_shared_with_client ?? false,
                 notes: credential.notes ?? "",
               }
-            : undefined
+            : defaultClientId
+              ? { client_id: defaultClientId }
+              : undefined
         }
         onSubmit={(values) => (isEdit ? updateCredential(credential.id!, values) : createCredential(values))}
         onSuccess={() => {

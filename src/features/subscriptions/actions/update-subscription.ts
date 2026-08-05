@@ -20,6 +20,7 @@ export async function updateSubscription(subscriptionId: string, input: Subscrip
     .update({
       client_id: parsed.data.client_id,
       service_id: parsed.data.service_id,
+      project_id: parsed.data.project_id || null,
       status: parsed.data.status,
       billing_interval: parsed.data.billing_interval,
       amount: Number(parsed.data.amount),
@@ -34,6 +35,8 @@ export async function updateSubscription(subscriptionId: string, input: Subscrip
   }
 
   revalidatePath("/suscripciones")
+  revalidatePath(`/clientes/${parsed.data.client_id}`)
+  if (parsed.data.project_id) revalidatePath(`/proyectos/${parsed.data.project_id}`)
 
   return { error: null }
 }

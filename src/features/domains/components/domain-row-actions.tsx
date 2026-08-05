@@ -15,9 +15,9 @@ import {
 import { DeleteDialog } from "@/components/common/delete-dialog"
 import { DomainFormDrawer } from "@/features/domains/components/domain-form-drawer"
 import { deleteDomain } from "@/features/domains/actions/delete-domain"
-import type { ClientOption, DomainWithClient } from "@/features/domains/types"
+import type { ClientOption, DomainWithClient, ProjectOption } from "@/features/domains/types"
 
-function DomainRowActions({ domain, clientOptions }: { domain: DomainWithClient; clientOptions: ClientOption[] }) {
+function DomainRowActions({ domain, clientOptions, projectOptions }: { domain: DomainWithClient; clientOptions: ClientOption[]; projectOptions?: ProjectOption[] }) {
   const router = useRouter()
   const [editOpen, setEditOpen] = React.useState(false)
   const [deleteOpen, setDeleteOpen] = React.useState(false)
@@ -40,7 +40,7 @@ function DomainRowActions({ domain, clientOptions }: { domain: DomainWithClient;
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DomainFormDrawer open={editOpen} onOpenChange={setEditOpen} domain={domain} clientOptions={clientOptions} />
+      <DomainFormDrawer open={editOpen} onOpenChange={setEditOpen} domain={domain} clientOptions={clientOptions} projectOptions={projectOptions} />
 
       <DeleteDialog
         open={deleteOpen}

@@ -8,7 +8,6 @@ import {
   BellIcon,
   LogOutIcon,
   MoonIcon,
-  SearchIcon,
   SettingsIcon,
   SunIcon,
   UserIcon,
@@ -27,8 +26,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import { MobileSidebar } from "@/components/layout/mobile-sidebar"
+import { GlobalSearch } from "@/components/layout/global-search"
 
 type AppHeaderProps = {
   userEmail?: string | null
@@ -67,14 +66,7 @@ function AppHeader({
         ) : null}
       </div>
 
-      <div className="relative ml-2 hidden max-w-sm flex-1 md:block">
-        <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Buscar clientes, proyectos, facturas..."
-          className="pl-9"
-        />
-      </div>
+      <GlobalSearch />
 
       <div className="ml-auto flex items-center gap-1.5">
         <Button

@@ -25,17 +25,18 @@ import {
 } from "@/components/ui/form"
 import { DOMAIN_STATUSES, domainSchema, type DomainInput } from "@/features/domains/schemas/domain-schema"
 import { getDomainStatusBadge } from "@/features/domains/utils/status"
-import type { ClientOption } from "@/features/domains/types"
+import type { ClientOption, ProjectOption } from "@/features/domains/types"
 
 type DomainFormProps = {
   defaultValues?: Partial<DomainInput>
   clientOptions: ClientOption[]
+  projectOptions?: ProjectOption[]
   onSubmit: (values: DomainInput) => Promise<{ error: string | null }>
   onSuccess: () => void
   submitLabel?: string
 }
 
-function DomainForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitLabel = "Guardar" }: DomainFormProps) {
+function DomainForm({ defaultValues, clientOptions, projectOptions, onSubmit, onSuccess, submitLabel = "Guardar" }: DomainFormProps) {
   const [isPending, startTransition] = React.useTransition()
   const [formError, setFormError] = React.useState<string | null>(null)
 
@@ -53,9 +54,21 @@ function DomainForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitL
       managed_by_us: true,
       privacy_enabled: true,
       notes: "",
+      project_id: "",
       ...defaultValues,
     },
   })
+
+  const selectedClientId = form.watch("client_id")
+  const filteredProjects = (projectOptions ?? []).filter((p) => p.client_id === selectedClientId)
+
+  const prevClientId = React.useRef(selectedClientId)
+  React.useEffect(() => {
+    if (prevClientId.current !== selectedClientId) {
+      form.setValue("project_id", "")
+      prevClientId.current = selectedClientId
+    }
+  }, [selectedClientId, form])
 
   function handleSubmit(values: DomainInput) {
     setFormError(null)
@@ -97,6 +110,36 @@ function DomainForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitL
               </FormItem>
             )}
           />
+
+          {filteredProjects.length > 0 && (
+            <FormField
+              control={form.control}
+              name="project_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Proyecto</FormLabel>
+                  <Select
+                    value={field.value ?? ""}
+                    onValueChange={field.onChange}
+                    items={{ "": "Sin proyecto asignado", ...Object.fromEntries(filteredProjects.map((p) => [p.id, p.name])) }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sin proyecto asignado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin proyecto asignado</SelectItem>
+                      {filteredProjects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={form.control}

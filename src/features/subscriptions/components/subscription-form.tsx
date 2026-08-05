@@ -30,10 +30,13 @@ import {
 import { getBillingIntervalLabel, getSubscriptionStatusBadge } from "@/features/subscriptions/utils/status"
 import type { ClientOption, ServiceOption } from "@/features/subscriptions/types"
 
+type ProjectOption = { id: string; name: string; client_id: string }
+
 type SubscriptionFormProps = {
   defaultValues?: Partial<SubscriptionInput>
   clientOptions: ClientOption[]
   serviceOptions: ServiceOption[]
+  projectOptions?: ProjectOption[]
   onSubmit: (values: SubscriptionInput) => Promise<{ error: string | null }>
   onSuccess: () => void
   submitLabel?: string
@@ -43,6 +46,7 @@ function SubscriptionForm({
   defaultValues,
   clientOptions,
   serviceOptions,
+  projectOptions,
   onSubmit,
   onSuccess,
   submitLabel = "Guardar",
@@ -55,6 +59,7 @@ function SubscriptionForm({
     defaultValues: {
       client_id: "",
       service_id: "",
+      project_id: "",
       status: "active",
       billing_interval: "monthly",
       amount: "",
@@ -64,6 +69,17 @@ function SubscriptionForm({
       ...defaultValues,
     },
   })
+
+  const selectedClientId = form.watch("client_id")
+  const filteredProjects = (projectOptions ?? []).filter((p) => p.client_id === selectedClientId)
+
+  const prevClientRef = React.useRef(selectedClientId)
+  React.useEffect(() => {
+    if (prevClientRef.current !== selectedClientId) {
+      form.setValue("project_id", "")
+      prevClientRef.current = selectedClientId
+    }
+  }, [selectedClientId, form])
 
   function handleSubmit(values: SubscriptionInput) {
     setFormError(null)
@@ -83,28 +99,30 @@ function SubscriptionForm({
         <fieldset className="flex flex-col gap-4">
           <legend className="mb-1 text-sm font-medium text-foreground">Información general</legend>
 
-          <FormField
-            control={form.control}
-            name="client_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cliente *</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange} items={Object.fromEntries(clientOptions.map((c) => [c.id, c.display_name]))}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecciona un cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientOptions.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.display_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {clientOptions.length > 0 && (
+            <FormField
+              control={form.control}
+              name="client_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cliente *</FormLabel>
+                  <Select value={field.value} onValueChange={field.onChange} items={Object.fromEntries(clientOptions.map((c) => [c.id, c.display_name]))}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona un cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientOptions.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.display_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={form.control}
@@ -112,7 +130,7 @@ function SubscriptionForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Servicio *</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select value={field.value} onValueChange={field.onChange} items={Object.fromEntries(serviceOptions.map((s) => [s.id, s.name]))}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecciona un servicio" />
                   </SelectTrigger>
@@ -128,6 +146,34 @@ function SubscriptionForm({
               </FormItem>
             )}
           />
+
+          {filteredProjects.length > 0 && (
+            <FormField
+              control={form.control}
+              name="project_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Proyecto (opcional)</FormLabel>
+                  <Select
+                    value={field.value ?? ""}
+                    onValueChange={field.onChange}
+                    items={{ "": "Sin proyecto", ...Object.fromEntries(filteredProjects.map((p) => [p.id, p.name])) }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sin proyecto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin proyecto</SelectItem>
+                      {filteredProjects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <FormField

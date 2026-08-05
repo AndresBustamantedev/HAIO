@@ -36,10 +36,7 @@ export type WebInstallationWithSite =
 
 export type CredentialSafeSnippet = Database["public"]["Views"]["v_credentials_safe"]["Row"]
 
-export type BackupConfigSnippet = Pick<
-  Database["public"]["Tables"]["backup_configurations"]["Row"],
-  "id" | "name" | "status" | "frequency"
->
+export type BackupConfigSnippet = Database["public"]["Tables"]["backup_configurations"]["Row"]
 
 // ----- Full detail type -----
 
@@ -140,7 +137,7 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
       .limit(10),
     supabase
       .from("backup_configurations")
-      .select("id, name, status, frequency")
+      .select("*")
       .eq("client_id", clientId)
       .is("deleted_at", null)
       .limit(5),

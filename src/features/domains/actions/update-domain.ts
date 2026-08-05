@@ -29,6 +29,7 @@ export async function updateDomain(domainId: string, input: DomainInput): Promis
       managed_by_us: parsed.data.managed_by_us,
       privacy_enabled: parsed.data.privacy_enabled,
       notes: parsed.data.notes || null,
+      project_id: parsed.data.project_id || null,
     })
     .eq("id", domainId)
 

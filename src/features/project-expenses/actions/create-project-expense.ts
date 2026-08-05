@@ -13,6 +13,7 @@ const schema = z.object({
   category: z.enum(["hosting", "domain", "license", "tool", "design", "development", "other"]).default("other"),
   incurred_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(() => new Date().toISOString().slice(0, 10)),
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
+  milestone_id: z.string().uuid().optional(),
 })
 
 export type CreateExpenseInput = z.infer<typeof schema>
@@ -32,6 +33,7 @@ export async function createProjectExpense(projectId: string, input: CreateExpen
   const { error } = await (supabase as any).from("project_expenses").insert({
     organization_id: org.organizationId,
     project_id: projectId,
+    milestone_id: parsed.data.milestone_id ?? null,
     description: parsed.data.description,
     amount: parsed.data.amount,
     currency_code: parsed.data.currency_code,

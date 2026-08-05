@@ -8,7 +8,7 @@ const TABS = [
   { id: "infraestructura", label: "Infraestructura" },
   { id: "vault",           label: "Vault" },
   { id: "wordpress",       label: "WordPress" },
-  { id: "costes",          label: "Costes" },
+  { id: "finanzas",         label: "Finanzas" },
   { id: "wiki",            label: "Wiki" },
   { id: "diario",          label: "Diario" },
   { id: "backups",         label: "Backups" },

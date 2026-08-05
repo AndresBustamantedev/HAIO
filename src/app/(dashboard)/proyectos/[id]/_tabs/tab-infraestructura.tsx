@@ -23,7 +23,7 @@ export async function TabInfrastructura({ projectId, clientId }: Props) {
     supabase
       .from("domains")
       .select("id, domain_name, status, expires_on, registrar_name, nameservers")
-      .or(`project_id.eq.${projectId},client_id.eq.${clientId}`)
+      .eq("project_id", projectId)
       .is("deleted_at", null)
       .order("domain_name"),
     supabase
@@ -53,7 +53,7 @@ export async function TabInfrastructura({ projectId, clientId }: Props) {
       {/* Dominios */}
       <Section title={`Dominios (${domains.length})`} icon={<GlobeIcon className="size-4" />}>
         {domains.length === 0 ? (
-          <EmptyState title="Sin dominios" description="No hay dominios asociados a este proyecto o cliente." />
+          <EmptyState title="Sin dominios" description="No hay dominios asignados a este proyecto. Edita un dominio del cliente para asignarlo." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

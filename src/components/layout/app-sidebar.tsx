@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation"
 import { LogOutIcon, PanelLeftCloseIcon, PanelLeftIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { NAV_ITEMS } from "@/lib/navigation"
+import { DASHBOARD_ITEM, NAV_SECTIONS } from "@/lib/navigation"
+import type { NavItem } from "@/lib/navigation"
 import { signOut } from "@/features/auth/actions/sign-out"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +26,46 @@ type AppSidebarProps = {
   userEmail?: string | null
 }
 
+function NavLink({
+  item,
+  collapsed,
+  pathname,
+  onClick,
+}: {
+  item: NavItem
+  collapsed: boolean
+  pathname: string
+  onClick?: () => void
+}) {
+  const active = isActive(pathname, item.href)
+  const Icon = item.icon
+
+  const link = (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        active && "bg-sidebar-accent text-sidebar-accent-foreground",
+        collapsed && "justify-center px-2"
+      )}
+    >
+      <Icon className="size-4.5 shrink-0" />
+      {!collapsed && <span className="truncate">{item.label}</span>}
+    </Link>
+  )
+
+  if (!collapsed) return link
+
+  return (
+    <Tooltip key={item.href}>
+      <TooltipTrigger render={link} />
+      <TooltipContent side="right">{item.label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
 function AppSidebar({ organizationName, userEmail }: AppSidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = React.useState(false)
@@ -38,51 +79,51 @@ function AppSidebar({ organizationName, userEmail }: AppSidebarProps) {
           collapsed ? "w-16" : "w-64"
         )}
       >
+        {/* Logo */}
         <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-4">
           <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-2">
             <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
               H
             </span>
-            {!collapsed ? (
-              <span className="truncate text-base font-semibold">HAIO</span>
-            ) : null}
+            {!collapsed && <span className="truncate text-base font-semibold">HAIO</span>}
           </Link>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-          {NAV_ITEMS.map((item) => {
-            const active = isActive(pathname, item.href)
-            const Icon = item.icon
+        {/* Nav */}
+        <nav className="flex flex-1 flex-col overflow-y-auto p-2">
+          {/* Dashboard */}
+          <NavLink item={DASHBOARD_ITEM} collapsed={collapsed} pathname={pathname} />
 
-            const link = (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  active && "bg-sidebar-accent text-sidebar-accent-foreground",
-                  collapsed && "justify-center px-2"
-                )}
-              >
-                <Icon className="size-4.5 shrink-0" />
-                {!collapsed ? <span className="truncate">{item.label}</span> : null}
-              </Link>
-            )
+          {/* Sections */}
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.label} className="mt-2">
+              {/* Section divider + label */}
+              {collapsed ? (
+                <div className="my-1 mx-1 h-px bg-sidebar-border/60" />
+              ) : (
+                <div className="px-2 pt-1 pb-0.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/35 select-none">
+                    {section.label}
+                  </p>
+                </div>
+              )}
 
-            if (!collapsed) {
-              return link
-            }
-
-            return (
-              <Tooltip key={item.href}>
-                <TooltipTrigger render={link} />
-                <TooltipContent side="right">{item.label}</TooltipContent>
-              </Tooltip>
-            )
-          })}
+              {/* Items */}
+              <div className="flex flex-col gap-0.5 mt-0.5">
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    collapsed={collapsed}
+                    pathname={pathname}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </nav>
 
+        {/* Footer */}
         <div className="border-t border-sidebar-border">
           {(organizationName || userEmail) && (
             <div className={cn(
@@ -123,7 +164,7 @@ function AppSidebar({ organizationName, userEmail }: AppSidebarProps) {
               variant="ghost"
               size="icon-sm"
               className="text-sidebar-foreground/50 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent"
-              onClick={() => setCollapsed((value) => !value)}
+              onClick={() => setCollapsed((v) => !v)}
               aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
             >
               {collapsed ? <PanelLeftIcon /> : <PanelLeftCloseIcon />}

@@ -39,12 +39,13 @@ const BILLING_INTERVALS = ["weekly", "monthly", "quarterly", "semiannual", "annu
 
 type ClientServiceFormProps = {
   serviceOptions: ServiceOption[]
+  defaultValues?: Partial<ClientServiceInput>
   onSubmit: (values: ClientServiceInput) => Promise<{ error: string | null }>
   onSuccess: () => void
   submitLabel?: string
 }
 
-function ClientServiceForm({ serviceOptions, onSubmit, onSuccess, submitLabel = "Guardar" }: ClientServiceFormProps) {
+function ClientServiceForm({ serviceOptions, defaultValues, onSubmit, onSuccess, submitLabel = "Guardar" }: ClientServiceFormProps) {
   const [isPending, startTransition] = React.useTransition()
   const [formError, setFormError] = React.useState<string | null>(null)
 
@@ -60,6 +61,7 @@ function ClientServiceForm({ serviceOptions, onSubmit, onSuccess, submitLabel = 
       starts_on: "",
       ends_on: "",
       notes: "",
+      ...defaultValues,
     },
   })
 

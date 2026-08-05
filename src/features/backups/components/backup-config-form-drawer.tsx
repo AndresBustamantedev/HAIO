@@ -14,9 +14,10 @@ type BackupConfigFormDrawerProps = {
   onOpenChange: (open: boolean) => void
   clientOptions: ClientOption[]
   config?: BackupConfigWithClient
+  defaultClientId?: string
 }
 
-function BackupConfigFormDrawer({ open, onOpenChange, clientOptions, config }: BackupConfigFormDrawerProps) {
+function BackupConfigFormDrawer({ open, onOpenChange, clientOptions, config, defaultClientId }: BackupConfigFormDrawerProps) {
   const router = useRouter()
   const isEdit = !!config
 
@@ -39,7 +40,9 @@ function BackupConfigFormDrawer({ open, onOpenChange, clientOptions, config }: B
                 status: config.status,
                 client_id: config.client_id ?? "",
               }
-            : undefined
+            : defaultClientId
+              ? { client_id: defaultClientId }
+              : undefined
         }
         onSubmit={(values) => (isEdit ? updateBackupConfig(config.id, values) : createBackupConfig(values))}
         onSuccess={() => {

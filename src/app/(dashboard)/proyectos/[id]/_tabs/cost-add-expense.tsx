@@ -28,7 +28,7 @@ const CATEGORIES = [
 
 const today = () => new Date().toISOString().slice(0, 10)
 
-export function CostAddExpense({ projectId }: { projectId: string }) {
+export function CostAddExpense({ projectId, milestoneId }: { projectId: string; milestoneId?: string }) {
   const [open, setOpen] = React.useState(false)
   const [pending, startTransition] = React.useTransition()
 
@@ -59,6 +59,7 @@ export function CostAddExpense({ projectId }: { projectId: string }) {
         category: category as Parameters<typeof createProjectExpense>[1]["category"],
         incurred_at: date,
         notes,
+        milestone_id: milestoneId,
       })
       if (result.error) {
         toast.error(result.error)

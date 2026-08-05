@@ -20,12 +20,10 @@ export async function createCredential(input: CredentialInput): Promise<ActionRe
   }
 
   const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).from("credentials").insert({
+  const { data, error } = await (supabase as any).from("credentials").insert({
     organization_id: organization.organizationId,
     label: parsed.data.label,
     type: parsed.data.type,
@@ -38,10 +36,20 @@ export async function createCredential(input: CredentialInput): Promise<ActionRe
     notes: parsed.data.notes || null,
     created_by: user?.id ?? null,
     updated_by: user?.id ?? null,
-  })
+  }).select("id").single()
 
   if (error) {
     return { error: "No se pudo crear la credencial. " + error.message }
+  }
+
+  if (parsed.data.project_ids?.length && data?.id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("credential_project_assignments").insert(
+      parsed.data.project_ids.map((pid) => ({
+        credential_id: data.id,
+        project_id: pid,
+      })),
+    )
   }
 
   revalidatePath("/credenciales")

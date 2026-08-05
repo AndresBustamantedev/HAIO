@@ -69,7 +69,7 @@ export default async function ProyectosPage({ searchParams }: ProyectosPageProps
       <PageHeader
         title="Proyectos"
         description="Gestiona todos tus proyectos."
-        actions={<CreateProjectButton clientOptions={clientOptions} />}
+        actions={<CreateProjectButton />}
       />
 
       <FilterBar

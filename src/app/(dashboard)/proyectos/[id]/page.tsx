@@ -17,7 +17,7 @@ import { TabResumen } from "./_tabs/tab-resumen"
 import { TabInfrastructura } from "./_tabs/tab-infraestructura"
 import { TabVault } from "./_tabs/tab-vault"
 import { TabWordPress } from "./_tabs/tab-wordpress"
-import { TabCostes } from "./_tabs/tab-costes"
+import { TabFinanzas } from "./_tabs/tab-finanzas"
 import { TabWiki } from "./_tabs/tab-wiki"
 import { TabDiario } from "./_tabs/tab-diario"
 import { TabBackups } from "./_tabs/tab-backups"
@@ -25,19 +25,23 @@ import { TabAccesos } from "./_tabs/tab-accesos"
 
 const VALID_TABS = [
   "resumen", "infraestructura", "vault", "wordpress",
-  "costes", "wiki", "diario", "backups", "accesos",
+  "finanzas", "wiki", "diario", "backups", "accesos",
 ] as const
 type Tab = (typeof VALID_TABS)[number]
 
+const VALID_FINANZAS_VIEWS = ["resumen", "hitos", "recurrentes", "costes"] as const
+type FinanzasView = (typeof VALID_FINANZAS_VIEWS)[number]
+
 type Props = {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; view?: string }>
 }
 
 export default async function ProyectoDetailPage({ params, searchParams }: Props) {
-  const [{ id }, { tab: rawTab }] = await Promise.all([params, searchParams])
+  const [{ id }, { tab: rawTab, view: rawView }] = await Promise.all([params, searchParams])
 
   const activeTab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : "resumen"
+  const activeView: FinanzasView = VALID_FINANZAS_VIEWS.includes(rawView as FinanzasView) ? (rawView as FinanzasView) : "resumen"
 
   const detail = await getProjectDetail(id)
   if (!detail) notFound()
@@ -103,12 +107,14 @@ export default async function ProyectoDetailPage({ params, searchParams }: Props
         {activeTab === "wordpress" && (
           <TabWordPress projectId={id} />
         )}
-        {activeTab === "costes" && (
-          <TabCostes
+        {activeTab === "finanzas" && (
+          <TabFinanzas
             projectId={id}
             clientId={clientId}
             budget={project.budget ?? null}
             currencyCode={project.currency_code ?? null}
+            organizationId={project.organization_id}
+            view={activeView}
           />
         )}
         {activeTab === "wiki" && (

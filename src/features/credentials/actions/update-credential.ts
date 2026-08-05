@@ -14,9 +14,7 @@ export async function updateCredential(credentialId: string, input: CredentialIn
   }
 
   const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
@@ -37,6 +35,20 @@ export async function updateCredential(credentialId: string, input: CredentialIn
 
   if (error) {
     return { error: "No se pudo actualizar la credencial. " + error.message }
+  }
+
+  // Replace project assignments atomically
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any).from("credential_project_assignments").delete().eq("credential_id", credentialId)
+
+  if (parsed.data.project_ids?.length) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from("credential_project_assignments").insert(
+      parsed.data.project_ids.map((pid) => ({
+        credential_id: credentialId,
+        project_id: pid,
+      })),
+    )
   }
 
   revalidatePath("/credenciales")

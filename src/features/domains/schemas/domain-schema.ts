@@ -19,6 +19,7 @@ export const domainSchema = z.object({
   managed_by_us: z.boolean(),
   privacy_enabled: z.boolean(),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
+  project_id: z.string().uuid().optional().or(z.literal("")),
 })
 
 export type DomainInput = z.infer<typeof domainSchema>

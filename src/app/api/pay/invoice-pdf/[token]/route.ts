@@ -20,10 +20,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
     return new Response("PDF not available for this invoice status", { status: 403 })
   }
 
-  const buffer = await renderToBuffer(createElement(InvoicePDF, data))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const buffer = await renderToBuffer(createElement(InvoicePDF, data) as any)
   const filename = `${data.invoice.number}.pdf`
 
-  return new Response(buffer, {
+  return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,

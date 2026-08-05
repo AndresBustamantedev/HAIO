@@ -12,6 +12,7 @@ export type CredentialSafe = Database["public"]["Views"]["v_credentials_safe"]["
 
 export type CredentialSafeWithClient = CredentialSafe & {
   clients: Pick<Database["public"]["Tables"]["clients"]["Row"], "id" | "display_name"> | null
+  project_ids?: string[]
 }
 
 export type { ClientOption } from "@/lib/supabase/queries/client-options"

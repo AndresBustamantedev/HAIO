@@ -35,6 +35,7 @@ export function VaultAddCredential({ projectId, clientId, defaultShared = false 
       >
         <CredentialForm
           clientOptions={[]}
+          projectOptions={[]}
           defaultValues={{ client_id: clientId, is_shared_with_client: defaultShared }}
           onSubmit={(values) => createProjectCredential(projectId, clientId, values)}
           onSuccess={() => {

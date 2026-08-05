@@ -4,6 +4,7 @@ import { LockIcon, KeyRoundIcon, ExternalLinkIcon } from "lucide-react"
 import { DataTable, type DataTableColumn } from "@/components/tables/data-table"
 import { StatusBadge } from "@/components/common/status-badge"
 import { CredentialRowActions } from "@/features/credentials/components/credential-row-actions"
+import type { ProjectOption } from "@/lib/supabase/queries/client-options"
 import { RevealCredentialButton } from "@/features/credentials/components/reveal-credential-button"
 import { getCredentialTypeLabel } from "@/features/credentials/utils/labels"
 import type { ClientOption, CredentialSafeWithClient } from "@/features/credentials/types"
@@ -106,9 +107,11 @@ function buildColumns(): DataTableColumn<CredentialSafeWithClient>[] {
 function CredentialsTable({
   credentials,
   clientOptions,
+  projectOptions = [],
 }: {
   credentials: CredentialSafeWithClient[]
   clientOptions: ClientOption[]
+  projectOptions?: ProjectOption[]
 }) {
   return (
     <DataTable
@@ -119,6 +122,7 @@ function CredentialsTable({
         <CredentialRowActions
           credential={credential}
           clientOptions={clientOptions}
+          projectOptions={projectOptions}
         />
       )}
       emptyTitle="Todavía no hay credenciales"

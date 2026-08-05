@@ -7,4 +7,6 @@ export type DomainWithClient = Domain & {
   clients: Pick<Database["public"]["Tables"]["clients"]["Row"], "id" | "display_name"> | null
 }
 
+export type ProjectOption = { id: string; name: string; client_id: string }
+
 export type { ClientOption } from "@/lib/supabase/queries/client-options"
