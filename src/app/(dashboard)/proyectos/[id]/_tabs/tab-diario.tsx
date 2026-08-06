@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { EmptyState } from "@/components/common/empty-state"
-import { NoteActions } from "./note-actions"
 import { NoteAddForm } from "./note-add-form"
+import { DiarioNoteCard } from "./diario-note-card"
 
 type Props = { projectId: string; organizationId: string }
+
+type DiarioMeta = { tags?: string[] }
 
 type ProjectNote = {
   id: string
@@ -11,22 +13,27 @@ type ProjectNote = {
   title: string | null
   body: string
   pinned: boolean
+  metadata: DiarioMeta | null
   created_at: string
   updated_at: string
+  created_by: string | null
+  entry_date: string | null
 }
 
-function formatDateTime(v: string) {
+type Profile = { id: string; full_name: string | null; first_name: string | null }
+
+function formatTimestamp(v: string) {
   return new Intl.DateTimeFormat("es-ES", { dateStyle: "long", timeStyle: "short" }).format(new Date(v))
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  changelog: "Cambio",
-  note:      "Nota",
+function formatEntryDate(v: string) {
+  const [year, month, day] = v.split("-").map(Number)
+  return new Intl.DateTimeFormat("es-ES", { dateStyle: "long" }).format(new Date(year, month - 1, day))
 }
 
-const TYPE_COLOR: Record<string, string> = {
-  changelog: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  note:      "bg-muted text-muted-foreground",
+function getAuthorName(profile: Profile | undefined): string {
+  if (!profile) return "Desconocido"
+  return profile.full_name?.trim() || profile.first_name?.trim() || "Usuario"
 }
 
 export async function TabDiario({ projectId, organizationId }: Props) {
@@ -35,13 +42,24 @@ export async function TabDiario({ projectId, organizationId }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (supabase as any)
     .from("project_notes")
-    .select("id, type, title, body, pinned, created_at, updated_at")
+    .select("id, type, title, body, pinned, metadata, created_at, updated_at, created_by, entry_date")
     .eq("project_id", projectId)
     .in("type", ["note", "changelog"])
     .is("deleted_at", null)
+    .order("entry_date", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
 
   const notes = (data ?? []) as ProjectNote[]
+
+  const authorIds = [...new Set(notes.map((n) => n.created_by).filter(Boolean))] as string[]
+  const profileMap = new Map<string, Profile>()
+  if (authorIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, first_name")
+      .in("id", authorIds)
+    ;(profiles ?? []).forEach((p) => profileMap.set(p.id, p as Profile))
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -59,29 +77,30 @@ export async function TabDiario({ projectId, organizationId }: Props) {
         />
       ) : (
         <ul className="flex flex-col gap-3">
-          {notes.map((note) => (
-            <li key={note.id} className="rounded-xl border bg-card p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLOR[note.type] ?? "bg-muted text-muted-foreground"}`}>
-                      {TYPE_LABEL[note.type] ?? note.type}
-                    </span>
-                    {note.title ? (
-                      <span className="font-semibold text-foreground">{note.title}</span>
-                    ) : null}
-                    <span className="text-xs text-muted-foreground">{formatDateTime(note.created_at)}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{note.body}</p>
-                </div>
-                <NoteActions
-                  noteId={note.id}
-                  projectId={projectId}
-                  defaultValues={{ title: note.title ?? "", body: note.body, pinned: false }}
-                />
-              </div>
-            </li>
-          ))}
+          {notes.map((note) => {
+            const profile = note.created_by ? profileMap.get(note.created_by) : undefined
+            const name = getAuthorName(profile)
+            const initial = name.charAt(0).toUpperCase()
+            const displayDate = note.entry_date
+              ? formatEntryDate(note.entry_date)
+              : formatTimestamp(note.created_at)
+
+            return (
+              <DiarioNoteCard
+                key={note.id}
+                noteId={note.id}
+                projectId={projectId}
+                type={note.type}
+                title={note.title}
+                body={note.body}
+                metadata={note.metadata}
+                entryDate={note.entry_date}
+                displayDate={displayDate}
+                authorName={name}
+                authorInitial={initial}
+              />
+            )
+          })}
         </ul>
       )}
     </div>

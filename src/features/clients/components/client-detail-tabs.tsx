@@ -234,7 +234,14 @@ function InfraSummaryCard({ detail }: { detail: ClientDetail }) {
 }
 
 function DomainCard({ detail }: { detail: ClientDetail }) {
-  const domain = detail.domains[0]
+  const domain = [...detail.domains].sort((a, b) => {
+    const aActive = a.status === "active" ? 0 : 1
+    const bActive = b.status === "active" ? 0 : 1
+    if (aActive !== bActive) return aActive - bActive
+    if (!a.expires_on) return 1
+    if (!b.expires_on) return -1
+    return a.expires_on.localeCompare(b.expires_on)
+  })[0]
   const clientId = detail.client.id
 
   return (

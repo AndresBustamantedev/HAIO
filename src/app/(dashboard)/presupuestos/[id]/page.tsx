@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table"
 import { EditQuoteButton } from "@/features/quotes/components/edit-quote-button"
 import { getQuoteDetail } from "@/features/quotes/queries/get-quote-detail"
-import { getClientOptions } from "@/lib/supabase/queries/client-options"
+import { getClientOptions, getProjectOptions } from "@/lib/supabase/queries/client-options"
 import { getQuoteStatusBadge } from "@/features/quotes/utils/status"
 
 function formatDate(value: string | null) {
@@ -43,7 +43,10 @@ export default async function PresupuestoDetailPage({ params }: PresupuestoDetai
 
   const { quote, items } = detail
   const badge = getQuoteStatusBadge(quote.status)
-  const clientOptions = await getClientOptions(quote.organization_id)
+  const [clientOptions, projectOptions] = await Promise.all([
+    getClientOptions(quote.organization_id),
+    getProjectOptions(quote.organization_id),
+  ])
 
   return (
     <PageContainer>
@@ -61,7 +64,7 @@ export default async function PresupuestoDetailPage({ params }: PresupuestoDetai
         actions={
           <div className="flex items-center gap-3">
             <StatusBadge tone={badge.tone} label={badge.label} />
-            <EditQuoteButton quoteDetail={detail} clientOptions={clientOptions} />
+            <EditQuoteButton quoteDetail={detail} clientOptions={clientOptions} projectOptions={projectOptions} />
           </div>
         }
       />

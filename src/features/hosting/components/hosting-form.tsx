@@ -27,15 +27,18 @@ import { HOSTING_STATUSES, hostingSchema, type HostingInput } from "@/features/h
 import { getHostingStatusBadge } from "@/features/hosting/utils/status"
 import type { ClientOption } from "@/features/hosting/types"
 
+type ProjectOption = { id: string; name: string; client_id: string }
+
 type HostingFormProps = {
   defaultValues?: Partial<HostingInput>
   clientOptions: ClientOption[]
+  projectOptions?: ProjectOption[]
   onSubmit: (values: HostingInput) => Promise<{ error: string | null }>
   onSuccess: () => void
   submitLabel?: string
 }
 
-function HostingForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitLabel = "Guardar" }: HostingFormProps) {
+function HostingForm({ defaultValues, clientOptions, projectOptions, onSubmit, onSuccess, submitLabel = "Guardar" }: HostingFormProps) {
   const [isPending, startTransition] = React.useTransition()
   const [formError, setFormError] = React.useState<string | null>(null)
 
@@ -53,9 +56,21 @@ function HostingForm({ defaultValues, clientOptions, onSubmit, onSuccess, submit
       renewal_price: "",
       auto_renew: true,
       notes: "",
+      project_id: "",
       ...defaultValues,
     },
   })
+
+  const selectedClientId = form.watch("client_id")
+  const filteredProjects = (projectOptions ?? []).filter((p) => p.client_id === selectedClientId)
+
+  const prevClientRef = React.useRef(selectedClientId)
+  React.useEffect(() => {
+    if (prevClientRef.current !== selectedClientId) {
+      form.setValue("project_id", "")
+      prevClientRef.current = selectedClientId
+    }
+  }, [selectedClientId, form])
 
   function handleSubmit(values: HostingInput) {
     setFormError(null)
@@ -237,6 +252,40 @@ function HostingForm({ defaultValues, clientOptions, onSubmit, onSuccess, submit
             )}
           />
         </fieldset>
+
+        {filteredProjects.length > 0 && (
+          <FormField
+            control={form.control}
+            name="project_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Proyecto</FormLabel>
+                <Select
+                  value={field.value ?? ""}
+                  onValueChange={field.onChange}
+                  items={{ "": "Sin proyecto asignado", ...Object.fromEntries(filteredProjects.map((p) => [p.id, p.name])) }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue>
+                      {(val: string) =>
+                        val
+                          ? (filteredProjects.find((p) => p.id === val)?.name ?? val)
+                          : "Sin proyecto asignado"
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sin proyecto asignado</SelectItem>
+                    {filteredProjects.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
 

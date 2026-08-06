@@ -12,6 +12,7 @@ export const quoteItemSchema = z.object({
 
 export const quoteSchema = z.object({
   client_id: z.string().uuid("Selecciona un cliente."),
+  project_id: z.string().uuid().optional().or(z.literal("")),
   status: z.enum(QUOTE_STATUSES),
   issue_date: z.string().trim().min(1, "La fecha de emisión es obligatoria."),
   valid_until: z.string().trim().optional().or(z.literal("")),

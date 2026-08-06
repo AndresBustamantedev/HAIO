@@ -7,17 +7,18 @@ import { FormDrawer } from "@/components/common/form-drawer"
 import { SubscriptionForm } from "@/features/subscriptions/components/subscription-form"
 import { createSubscription } from "@/features/subscriptions/actions/create-subscription"
 import { updateSubscription } from "@/features/subscriptions/actions/update-subscription"
-import type { ClientOption, ServiceOption, SubscriptionWithRelations } from "@/features/subscriptions/types"
+import type { ClientOption, ProjectOption, ServiceOption, SubscriptionWithRelations } from "@/features/subscriptions/types"
 
 type SubscriptionFormDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   clientOptions: ClientOption[]
   serviceOptions: ServiceOption[]
+  projectOptions?: ProjectOption[]
   subscription?: SubscriptionWithRelations
 }
 
-function SubscriptionFormDrawer({ open, onOpenChange, clientOptions, serviceOptions, subscription }: SubscriptionFormDrawerProps) {
+function SubscriptionFormDrawer({ open, onOpenChange, clientOptions, serviceOptions, projectOptions, subscription }: SubscriptionFormDrawerProps) {
   const router = useRouter()
   const isEdit = !!subscription
 
@@ -31,11 +32,13 @@ function SubscriptionFormDrawer({ open, onOpenChange, clientOptions, serviceOpti
       <SubscriptionForm
         clientOptions={clientOptions}
         serviceOptions={serviceOptions}
+        projectOptions={projectOptions}
         defaultValues={
           subscription
             ? {
                 client_id: subscription.client_id,
                 service_id: subscription.service_id,
+                project_id: subscription.project_id ?? "",
                 status: subscription.status,
                 billing_interval: subscription.billing_interval,
                 amount: String(subscription.amount),

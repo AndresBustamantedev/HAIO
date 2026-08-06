@@ -27,6 +27,7 @@ import { importDomainFromResource } from '@/features/integrations/actions/import
 import type { ExternalResource } from '@/features/integrations/types'
 
 type ClientOption = { id: string; display_name: string }
+type ProjectOption = { id: string; name: string }
 
 export function ImportDomainDialog({
   resource,
@@ -40,6 +41,9 @@ export function ImportDomainDialog({
   const router = useRouter()
   const [open, setOpen] = React.useState(false)
   const [clientId, setClientId] = React.useState('')
+  const [projectId, setProjectId] = React.useState('')
+  const [projects, setProjects] = React.useState<ProjectOption[]>([])
+  const [loadingProjects, setLoadingProjects] = React.useState(false)
   const [notes, setNotes] = React.useState('')
   const [submitting, setSubmitting] = React.useState(false)
 
@@ -47,6 +51,20 @@ export function ImportDomainDialog({
   const expiresOn = typeof meta.expiresOn === 'string' ? meta.expiresOn.split('T')[0] : null
   const autoRenew = typeof meta.autoRenew === 'boolean' ? meta.autoRenew : false
   const nameservers = Array.isArray(meta.nameservers) ? meta.nameservers as string[] : []
+
+  React.useEffect(() => {
+    if (!clientId) {
+      setProjects([])
+      setProjectId('')
+      return
+    }
+    setLoadingProjects(true)
+    fetch(`/api/integrations/search-projects?client_id=${encodeURIComponent(clientId)}`)
+      .then((r) => r.json())
+      .then((data: { projects?: ProjectOption[] }) => setProjects(data.projects ?? []))
+      .catch(() => setProjects([]))
+      .finally(() => setLoadingProjects(false))
+  }, [clientId])
 
   async function handleSubmit() {
     if (!clientId) {
@@ -58,6 +76,7 @@ export function ImportDomainDialog({
       const result = await importDomainFromResource({
         externalResourceId: resource.id,
         clientId,
+        projectId: projectId || undefined,
         notes: notes.trim() || undefined,
       })
       if (result.error) {
@@ -99,7 +118,7 @@ export function ImportDomainDialog({
             <Label htmlFor="client-select">
               Cliente <span className="text-destructive">*</span>
             </Label>
-            <Select value={clientId} onValueChange={setClientId}>
+            <Select value={clientId} onValueChange={(v) => { setClientId(v); setProjectId('') }}>
               <SelectTrigger id="client-select">
                 <SelectValue placeholder="Selecciona un cliente..." />
               </SelectTrigger>
@@ -112,6 +131,37 @@ export function ImportDomainDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Proyecto (opcional) */}
+          {clientId && (
+            <div className="space-y-1.5">
+              <Label htmlFor="project-select">Proyecto (opcional)</Label>
+              <Select
+                value={projectId}
+                onValueChange={setProjectId}
+                disabled={loadingProjects || projects.length === 0}
+              >
+                <SelectTrigger id="project-select">
+                  <SelectValue
+                    placeholder={
+                      loadingProjects
+                        ? 'Cargando proyectos...'
+                        : projects.length === 0
+                          ? 'Sin proyectos para este cliente'
+                          : 'Sin asignar a proyecto'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Notas opcionales */}
           <div className="space-y-1.5">

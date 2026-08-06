@@ -25,12 +25,19 @@ import { TabAccesos } from "./_tabs/tab-accesos"
 
 const VALID_TABS = [
   "resumen", "infraestructura", "vault", "wordpress",
-  "finanzas", "wiki", "diario", "backups", "accesos",
+  "finanzas", "documentacion", "backups", "accesos",
 ] as const
 type Tab = (typeof VALID_TABS)[number]
 
 const VALID_FINANZAS_VIEWS = ["resumen", "hitos", "recurrentes", "costes"] as const
 type FinanzasView = (typeof VALID_FINANZAS_VIEWS)[number]
+
+const VALID_DOC_VIEWS = ["wiki", "diario"] as const
+type DocView = (typeof VALID_DOC_VIEWS)[number]
+const DOC_VIEWS: { id: DocView; label: string }[] = [
+  { id: "wiki",   label: "Wiki" },
+  { id: "diario", label: "Diario" },
+]
 
 type Props = {
   params: Promise<{ id: string }>
@@ -42,6 +49,7 @@ export default async function ProyectoDetailPage({ params, searchParams }: Props
 
   const activeTab: Tab = VALID_TABS.includes(rawTab as Tab) ? (rawTab as Tab) : "resumen"
   const activeView: FinanzasView = VALID_FINANZAS_VIEWS.includes(rawView as FinanzasView) ? (rawView as FinanzasView) : "resumen"
+  const activeDocView: DocView = VALID_DOC_VIEWS.includes(rawView as DocView) ? (rawView as DocView) : "wiki"
 
   const detail = await getProjectDetail(id)
   if (!detail) notFound()
@@ -117,11 +125,34 @@ export default async function ProyectoDetailPage({ params, searchParams }: Props
             view={activeView}
           />
         )}
-        {activeTab === "wiki" && (
-          <TabWiki projectId={id} organizationId={project.organization_id} />
-        )}
-        {activeTab === "diario" && (
-          <TabDiario projectId={id} organizationId={project.organization_id} />
+        {activeTab === "documentacion" && (
+          <>
+            <nav className="flex gap-1 rounded-lg border bg-muted/40 p-1 w-fit">
+              {DOC_VIEWS.map((v) => {
+                const isActive = v.id === activeDocView
+                return (
+                  <Link
+                    key={v.id}
+                    href={`/proyectos/${id}?tab=documentacion&view=${v.id}`}
+                    className={[
+                      "whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+                      isActive
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    {v.label}
+                  </Link>
+                )
+              })}
+            </nav>
+            {activeDocView === "wiki" && (
+              <TabWiki projectId={id} organizationId={project.organization_id} />
+            )}
+            {activeDocView === "diario" && (
+              <TabDiario projectId={id} organizationId={project.organization_id} />
+            )}
+          </>
         )}
         {activeTab === "backups" && (
           <TabBackups projectId={id} />

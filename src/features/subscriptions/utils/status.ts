@@ -17,6 +17,7 @@ export function getSubscriptionStatusBadge(status: SubscriptionStatus) {
 }
 
 const INTERVAL_LABELS: Record<Database["public"]["Enums"]["billing_interval"], string> = {
+  daily: "Diario",
   weekly: "Semanal",
   monthly: "Mensual",
   quarterly: "Trimestral",

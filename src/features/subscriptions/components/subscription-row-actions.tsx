@@ -15,16 +15,18 @@ import {
 import { ConfirmDialog } from "@/components/common/confirm-dialog"
 import { SubscriptionFormDrawer } from "@/features/subscriptions/components/subscription-form-drawer"
 import { cancelSubscription } from "@/features/subscriptions/actions/cancel-subscription"
-import type { ClientOption, ServiceOption, SubscriptionWithRelations } from "@/features/subscriptions/types"
+import type { ClientOption, ProjectOption, ServiceOption, SubscriptionWithRelations } from "@/features/subscriptions/types"
 
 function SubscriptionRowActions({
   subscription,
   clientOptions,
   serviceOptions,
+  projectOptions,
 }: {
   subscription: SubscriptionWithRelations
   clientOptions: ClientOption[]
   serviceOptions: ServiceOption[]
+  projectOptions?: ProjectOption[]
 }) {
   const router = useRouter()
   const [editOpen, setEditOpen] = React.useState(false)
@@ -56,6 +58,7 @@ function SubscriptionRowActions({
         subscription={subscription}
         clientOptions={clientOptions}
         serviceOptions={serviceOptions}
+        projectOptions={projectOptions}
       />
 
       <ConfirmDialog

@@ -23,6 +23,7 @@ export async function updateQuote(quoteId: string, input: QuoteInput): Promise<A
     .from("quotes")
     .update({
       client_id: parsed.data.client_id,
+      project_id: parsed.data.project_id || null,
       status: parsed.data.status,
       issue_date: parsed.data.issue_date,
       valid_until: parsed.data.valid_until || null,
@@ -61,6 +62,7 @@ export async function updateQuote(quoteId: string, input: QuoteInput): Promise<A
   revalidatePath("/presupuestos")
   revalidatePath(`/presupuestos/${quoteId}`)
   revalidatePath(`/clientes/${parsed.data.client_id}`)
+  if (parsed.data.project_id) revalidatePath(`/proyectos/${parsed.data.project_id}`)
 
   return { error: null }
 }

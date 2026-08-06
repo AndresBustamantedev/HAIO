@@ -13,6 +13,7 @@ const schema = z.object({
   body: z.string().trim().min(1, "El contenido es obligatorio.").max(10000),
   pinned: z.boolean().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  entry_date: z.string().optional().or(z.literal("")),
 })
 
 type Input = z.infer<typeof schema>
@@ -39,6 +40,7 @@ export async function createProjectNote(input: Input): Promise<Result> {
       body: parsed.data.body,
       pinned: parsed.data.pinned ?? false,
       metadata: parsed.data.metadata ?? {},
+      entry_date: parsed.data.entry_date || null,
       created_by: user?.id ?? null,
       updated_by: user?.id ?? null,
     })

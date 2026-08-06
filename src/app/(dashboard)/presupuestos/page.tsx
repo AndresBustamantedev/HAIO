@@ -11,7 +11,7 @@ import { QuotesTable } from "@/features/quotes/components/quotes-table";
 import { QUOTE_STATUSES } from "@/features/quotes/schemas/quote-schema";
 import { getQuoteStatusBadge } from "@/features/quotes/utils/status";
 import { getQuotes } from "@/features/quotes/queries/get-quotes";
-import { getClientOptions } from "@/lib/supabase/queries/client-options";
+import { getClientOptions, getProjectOptions } from "@/lib/supabase/queries/client-options";
 import { getCurrentOrganization } from "@/lib/supabase/queries/organizations";
 
 type PresupuestosPageProps = {
@@ -42,10 +42,12 @@ export default async function PresupuestosPage({ searchParams }: PresupuestosPag
 
   let result;
   let clientOptions;
+  let projectOptions;
   try {
-    [result, clientOptions] = await Promise.all([
+    [result, clientOptions, projectOptions] = await Promise.all([
       getQuotes({ organizationId: organization.organizationId, search, status, clientId, page }),
       getClientOptions(organization.organizationId),
+      getProjectOptions(organization.organizationId),
     ]);
   } catch {
     return (
@@ -61,7 +63,7 @@ export default async function PresupuestosPage({ searchParams }: PresupuestosPag
       <PageHeader
         title="Presupuestos"
         description="Presupuestos enviados a tus clientes."
-        actions={<CreateQuoteButton clientOptions={clientOptions} />}
+        actions={<CreateQuoteButton clientOptions={clientOptions} projectOptions={projectOptions} />}
       />
 
       <FilterBar

@@ -23,15 +23,16 @@ export async function createEmailService(input: EmailServiceInput): Promise<Acti
 
   const { error } = await supabase.from("email_services").insert({
     organization_id: organization.organizationId,
-    client_id: parsed.data.client_id,
+    client_id:    parsed.data.client_id,
+    project_id:   parsed.data.project_id || null,
     provider_name: parsed.data.provider_name,
-    plan_name: parsed.data.plan_name || null,
-    status: parsed.data.status,
-    starts_on: parsed.data.starts_on || null,
-    expires_on: parsed.data.expires_on || null,
+    plan_name:    parsed.data.plan_name || null,
+    status:       parsed.data.status,
+    starts_on:    parsed.data.starts_on || null,
+    expires_on:   parsed.data.expires_on || null,
     renewal_price: parsed.data.renewal_price ? Number(parsed.data.renewal_price) : null,
-    auto_renew: parsed.data.auto_renew,
-    notes: parsed.data.notes || null,
+    auto_renew:   parsed.data.auto_renew,
+    notes:        parsed.data.notes || null,
   })
 
   if (error) {
@@ -40,6 +41,9 @@ export async function createEmailService(input: EmailServiceInput): Promise<Acti
 
   revalidatePath("/correos")
   revalidatePath(`/clientes/${parsed.data.client_id}`)
+  if (parsed.data.project_id) {
+    revalidatePath(`/proyectos/${parsed.data.project_id}`)
+  }
 
   return { error: null }
 }

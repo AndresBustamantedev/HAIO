@@ -6,8 +6,9 @@ import { PlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { QuoteFormDrawer } from "@/features/quotes/components/quote-form-drawer"
 import type { ClientOption } from "@/features/quotes/types"
+import type { ProjectOption } from "@/lib/supabase/queries/client-options"
 
-function CreateQuoteButton({ clientOptions }: { clientOptions: ClientOption[] }) {
+function CreateQuoteButton({ clientOptions, projectOptions }: { clientOptions: ClientOption[]; projectOptions?: ProjectOption[] }) {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -16,7 +17,7 @@ function CreateQuoteButton({ clientOptions }: { clientOptions: ClientOption[] })
         <PlusIcon />
         Nuevo presupuesto
       </Button>
-      <QuoteFormDrawer open={open} onOpenChange={setOpen} clientOptions={clientOptions} />
+      <QuoteFormDrawer open={open} onOpenChange={setOpen} clientOptions={clientOptions} projectOptions={projectOptions} />
     </>
   )
 }

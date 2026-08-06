@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,14 +39,19 @@ type EmailServiceFormProps = {
   submitLabel?: string
 }
 
+type ProjectOption = { id: string; name: string }
+
 function EmailServiceForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitLabel = "Guardar" }: EmailServiceFormProps) {
   const [isPending, startTransition] = React.useTransition()
   const [formError, setFormError] = React.useState<string | null>(null)
+  const [projects, setProjects] = React.useState<ProjectOption[]>([])
+  const [loadingProjects, setLoadingProjects] = React.useState(false)
 
   const form = useForm<EmailServiceInput>({
     resolver: zodResolver(emailServiceSchema),
     defaultValues: {
       client_id: "",
+      project_id: "",
       provider_name: "",
       plan_name: "",
       status: "active",
@@ -58,6 +63,23 @@ function EmailServiceForm({ defaultValues, clientOptions, onSubmit, onSuccess, s
       ...defaultValues,
     },
   })
+
+  const watchedClientId = useWatch({ control: form.control, name: "client_id" })
+  const isMountedRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (!watchedClientId) { setProjects([]); return }
+    setLoadingProjects(true)
+    fetch(`/api/integrations/search-projects?client_id=${watchedClientId}`)
+      .then((r) => r.json())
+      .then((data) => setProjects(data.projects ?? []))
+      .catch(() => setProjects([]))
+      .finally(() => setLoadingProjects(false))
+    if (isMountedRef.current) {
+      form.setValue("project_id", "")
+    }
+    isMountedRef.current = true
+  }, [watchedClientId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSubmit(values: EmailServiceInput) {
     setFormError(null)
@@ -99,6 +121,45 @@ function EmailServiceForm({ defaultValues, clientOptions, onSubmit, onSuccess, s
               </FormItem>
             )}
           />
+
+          {watchedClientId && (
+            <FormField
+              control={form.control}
+              name="project_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Proyecto</FormLabel>
+                  <Select
+                    value={field.value ?? ""}
+                    onValueChange={(v) => field.onChange(v === "__none__" ? "" : v)}
+                    disabled={loadingProjects}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {(val: string) =>
+                          loadingProjects
+                            ? "Cargando proyectos…"
+                            : val && val !== "__none__"
+                              ? (projects.find((p) => p.id === val)?.name ?? val)
+                              : "Sin proyecto asignado"
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Sin proyecto asignado</SelectItem>
+                      {projects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                      {!loadingProjects && projects.length === 0 && (
+                        <div className="px-2 py-1.5 text-xs text-muted-foreground">No hay proyectos para este cliente.</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <FormField

@@ -34,6 +34,7 @@ export async function createHosting(input: HostingInput): Promise<ActionResult> 
     renewal_price: parsed.data.renewal_price ? Number(parsed.data.renewal_price) : null,
     auto_renew: parsed.data.auto_renew,
     notes: parsed.data.notes || null,
+    project_id: parsed.data.project_id || null,
   })
 
   if (error) {
@@ -42,6 +43,7 @@ export async function createHosting(input: HostingInput): Promise<ActionResult> 
 
   revalidatePath("/hosting")
   revalidatePath(`/clientes/${parsed.data.client_id}`)
+  if (parsed.data.project_id) revalidatePath(`/proyectos/${parsed.data.project_id}`)
 
   return { error: null }
 }

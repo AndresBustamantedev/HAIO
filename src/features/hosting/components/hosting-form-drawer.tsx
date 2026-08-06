@@ -9,15 +9,19 @@ import { createHosting } from "@/features/hosting/actions/create-hosting"
 import { updateHosting } from "@/features/hosting/actions/update-hosting"
 import type { ClientOption, HostingWithClient } from "@/features/hosting/types"
 
+type ProjectOption = { id: string; name: string; client_id: string }
+
 type HostingFormDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   clientOptions: ClientOption[]
+  projectOptions?: ProjectOption[]
   hosting?: HostingWithClient
   defaultClientId?: string
+  defaultProjectId?: string
 }
 
-function HostingFormDrawer({ open, onOpenChange, clientOptions, hosting, defaultClientId }: HostingFormDrawerProps) {
+function HostingFormDrawer({ open, onOpenChange, clientOptions, projectOptions, hosting, defaultClientId, defaultProjectId }: HostingFormDrawerProps) {
   const router = useRouter()
   const isEdit = !!hosting
 
@@ -30,6 +34,7 @@ function HostingFormDrawer({ open, onOpenChange, clientOptions, hosting, default
     >
       <HostingForm
         clientOptions={clientOptions}
+        projectOptions={projectOptions}
         defaultValues={
           hosting
             ? {
@@ -46,7 +51,7 @@ function HostingFormDrawer({ open, onOpenChange, clientOptions, hosting, default
                 notes: hosting.notes ?? "",
               }
             : defaultClientId
-              ? { client_id: defaultClientId }
+              ? { client_id: defaultClientId, project_id: defaultProjectId ?? "" }
               : undefined
         }
         onSubmit={(values) => (isEdit ? updateHosting(hosting.id, values) : createHosting(values))}

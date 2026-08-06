@@ -19,6 +19,7 @@ export const hostingSchema = z.object({
     .refine((value) => !value || !Number.isNaN(Number(value)), "Introduce un número válido."),
   auto_renew: z.boolean(),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
+  project_id: z.string().uuid().optional().or(z.literal("")),
 })
 
 export type HostingInput = z.infer<typeof hostingSchema>

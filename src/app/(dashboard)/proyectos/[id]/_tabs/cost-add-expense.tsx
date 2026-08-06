@@ -28,14 +28,14 @@ const CATEGORIES = [
 
 const today = () => new Date().toISOString().slice(0, 10)
 
-export function CostAddExpense({ projectId, milestoneId, onSuccess }: { projectId: string; milestoneId?: string; onSuccess?: () => void }) {
+export function CostAddExpense({ projectId, milestoneId, defaultCategory, onSuccess }: { projectId: string; milestoneId?: string; defaultCategory?: string; onSuccess?: () => void }) {
   const [open, setOpen] = React.useState(false)
   const [pending, startTransition] = React.useTransition()
 
   const [description, setDescription] = React.useState("")
   const [amount, setAmount] = React.useState("")
   const [currency, setCurrency] = React.useState("EUR")
-  const [category, setCategory] = React.useState<string>("other")
+  const [category, setCategory] = React.useState<string>(defaultCategory ?? "other")
   const [date, setDate] = React.useState(today())
   const [notes, setNotes] = React.useState("")
 

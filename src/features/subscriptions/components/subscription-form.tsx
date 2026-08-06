@@ -28,6 +28,7 @@ import {
   type SubscriptionInput,
 } from "@/features/subscriptions/schemas/subscription-schema"
 import { getBillingIntervalLabel, getSubscriptionStatusBadge } from "@/features/subscriptions/utils/status"
+import { addBillingInterval } from "@/features/subscriptions/utils/billing"
 import type { ClientOption, ServiceOption } from "@/features/subscriptions/types"
 
 type ProjectOption = { id: string; name: string; client_id: string }
@@ -71,6 +72,8 @@ function SubscriptionForm({
   })
 
   const selectedClientId = form.watch("client_id")
+  const periodStart = form.watch("current_period_start")
+  const billingInterval = form.watch("billing_interval")
   const filteredProjects = (projectOptions ?? []).filter((p) => p.client_id === selectedClientId)
 
   const prevClientRef = React.useRef(selectedClientId)
@@ -80,6 +83,13 @@ function SubscriptionForm({
       prevClientRef.current = selectedClientId
     }
   }, [selectedClientId, form])
+
+  // Auto-calculate period end when start or interval changes
+  React.useEffect(() => {
+    if (!periodStart || billingInterval === "custom") return
+    const computed = addBillingInterval(periodStart, billingInterval)
+    if (computed) form.setValue("current_period_end", computed)
+  }, [periodStart, billingInterval, form])
 
   function handleSubmit(values: SubscriptionInput) {
     setFormError(null)
@@ -257,6 +267,9 @@ function SubscriptionForm({
                 <FormItem>
                   <FormLabel>Fin</FormLabel>
                   <FormControl render={<Input type="date" {...field} />} />
+                  {billingInterval !== "custom" && (
+                    <p className="text-xs text-muted-foreground">Calculado según la periodicidad</p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

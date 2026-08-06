@@ -3,6 +3,7 @@ import { z } from "zod"
 export const SUBSCRIPTION_STATUSES = ["trialing", "active", "past_due", "paused", "cancelled", "expired"] as const
 
 export const BILLING_INTERVALS = [
+  "daily",
   "weekly",
   "monthly",
   "quarterly",

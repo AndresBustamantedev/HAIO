@@ -16,9 +16,10 @@ type Props = {
   clientOptions: ClientOption[]
   installation?: WebsiteInstallation
   defaultClientId?: string
+  defaultProjectId?: string
 }
 
-function WebsiteInstallationFormDrawer({ open, onOpenChange, clientOptions, installation, defaultClientId }: Props) {
+function WebsiteInstallationFormDrawer({ open, onOpenChange, clientOptions, installation, defaultClientId, defaultProjectId }: Props) {
   const router = useRouter()
   const isEdit = !!installation
 
@@ -48,7 +49,7 @@ function WebsiteInstallationFormDrawer({ open, onOpenChange, clientOptions, inst
                 notes: installation.notes ?? "",
               }
             : defaultClientId
-              ? { client_id: defaultClientId }
+              ? { client_id: defaultClientId, project_id: defaultProjectId ?? "" }
               : undefined
         }
         onSubmit={(values) =>

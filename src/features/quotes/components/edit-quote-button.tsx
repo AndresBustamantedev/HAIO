@@ -6,8 +6,9 @@ import { PencilIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { QuoteFormDrawer } from "@/features/quotes/components/quote-form-drawer"
 import type { ClientOption, QuoteDetail } from "@/features/quotes/types"
+import type { ProjectOption } from "@/lib/supabase/queries/client-options"
 
-function EditQuoteButton({ quoteDetail, clientOptions }: { quoteDetail: QuoteDetail; clientOptions: ClientOption[] }) {
+function EditQuoteButton({ quoteDetail, clientOptions, projectOptions }: { quoteDetail: QuoteDetail; clientOptions: ClientOption[]; projectOptions?: ProjectOption[] }) {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -16,7 +17,7 @@ function EditQuoteButton({ quoteDetail, clientOptions }: { quoteDetail: QuoteDet
         <PencilIcon />
         Editar
       </Button>
-      <QuoteFormDrawer open={open} onOpenChange={setOpen} quoteDetail={quoteDetail} clientOptions={clientOptions} />
+      <QuoteFormDrawer open={open} onOpenChange={setOpen} quoteDetail={quoteDetail} clientOptions={clientOptions} projectOptions={projectOptions} />
     </>
   )
 }

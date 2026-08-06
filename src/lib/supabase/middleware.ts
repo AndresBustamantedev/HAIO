@@ -34,8 +34,11 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isAuthRoute    = pathname === "/login";
-  // Rutas públicas que no requieren sesión: página de pago y sus APIs
-  const isPublicRoute  = pathname.startsWith("/pagar/") || pathname.startsWith("/api/pay/");
+  // Rutas públicas que no requieren sesión: página de pago, sus APIs y endpoints de cron
+  const isPublicRoute  =
+    pathname.startsWith("/pagar/") ||
+    pathname.startsWith("/api/pay/") ||
+    pathname.startsWith("/api/cron/");
 
   if (!user && !isAuthRoute && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url);

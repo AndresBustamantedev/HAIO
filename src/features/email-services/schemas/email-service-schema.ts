@@ -3,7 +3,8 @@ import { z } from "zod"
 export const EMAIL_SERVICE_STATUSES = ["pending", "active", "suspended", "expired", "cancelled"] as const
 
 export const emailServiceSchema = z.object({
-  client_id: z.string().uuid("Selecciona un cliente."),
+  client_id:  z.string().uuid("Selecciona un cliente."),
+  project_id: z.string().uuid().optional().or(z.literal("")),
   provider_name: z.string().trim().min(1, "El proveedor es obligatorio.").max(150),
   plan_name: z.string().trim().max(150).optional().or(z.literal("")),
   status: z.enum(EMAIL_SERVICE_STATUSES),

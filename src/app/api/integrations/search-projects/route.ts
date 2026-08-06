@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   }
 
   const q = req.nextUrl.searchParams.get('q') ?? ''
+  const clientId = req.nextUrl.searchParams.get('client_id')
   const supabase = await createClient()
 
   let query = supabase
@@ -21,6 +22,9 @@ export async function GET(req: NextRequest) {
 
   if (q.length >= 2) {
     query = query.ilike('name', `%${q}%`)
+  }
+  if (clientId) {
+    query = query.eq('client_id', clientId)
   }
 
   const { data, error } = await query

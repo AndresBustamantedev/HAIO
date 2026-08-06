@@ -15,9 +15,10 @@ type EmailServiceFormDrawerProps = {
   clientOptions: ClientOption[]
   emailService?: EmailServiceWithClient
   defaultClientId?: string
+  defaultProjectId?: string
 }
 
-function EmailServiceFormDrawer({ open, onOpenChange, clientOptions, emailService, defaultClientId }: EmailServiceFormDrawerProps) {
+function EmailServiceFormDrawer({ open, onOpenChange, clientOptions, emailService, defaultClientId, defaultProjectId }: EmailServiceFormDrawerProps) {
   const router = useRouter()
   const isEdit = !!emailService
 
@@ -44,7 +45,7 @@ function EmailServiceFormDrawer({ open, onOpenChange, clientOptions, emailServic
                 notes: emailService.notes ?? "",
               }
             : defaultClientId
-              ? { client_id: defaultClientId }
+              ? { client_id: defaultClientId, project_id: defaultProjectId ?? "" }
               : undefined
         }
         onSubmit={(values) => (isEdit ? updateEmailService(emailService.id, values) : createEmailService(values))}

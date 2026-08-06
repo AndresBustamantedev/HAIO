@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { EmptyState } from "@/components/common/empty-state"
-import { NoteActions } from "./note-actions"
-import { NoteAddForm } from "./note-add-form"
+import { WikiAddForm } from "./wiki-add-form"
+import { WikiNoteCard } from "./wiki-note-card"
 
 type Props = { projectId: string; organizationId: string }
+
+type WikiMeta = { language?: string; url?: string; tags?: string[] }
 
 type ProjectNote = {
   id: string
@@ -11,13 +13,27 @@ type ProjectNote = {
   title: string | null
   body: string
   pinned: boolean
-  metadata: Record<string, string> | null
+  metadata: WikiMeta | null
   created_at: string
   updated_at: string
+  created_by: string | null
+  entry_date: string | null
 }
 
-function formatDateTime(v: string) {
+type Profile = { id: string; full_name: string | null; first_name: string | null }
+
+function formatDate(v: string) {
+  const [year, month, day] = v.split("-").map(Number)
+  return new Intl.DateTimeFormat("es-ES", { dateStyle: "long" }).format(new Date(year, month - 1, day))
+}
+
+function formatTimestamp(v: string) {
   return new Intl.DateTimeFormat("es-ES", { dateStyle: "medium", timeStyle: "short" }).format(new Date(v))
+}
+
+function getAuthorName(profile: Profile | undefined) {
+  if (!profile) return "Desconocido"
+  return profile.full_name?.trim() || profile.first_name?.trim() || "Usuario"
 }
 
 export async function TabWiki({ projectId, organizationId }: Props) {
@@ -26,23 +42,29 @@ export async function TabWiki({ projectId, organizationId }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data } = await (supabase as any)
     .from("project_notes")
-    .select("id, type, title, body, pinned, metadata, created_at, updated_at")
+    .select("id, type, title, body, pinned, metadata, created_at, updated_at, created_by, entry_date")
     .eq("project_id", projectId)
     .in("type", ["wiki", "snippet"])
     .is("deleted_at", null)
     .order("pinned", { ascending: false })
+    .order("entry_date", { ascending: false, nullsFirst: false })
     .order("updated_at", { ascending: false })
 
   const notes = (data ?? []) as ProjectNote[]
 
+  const authorIds = [...new Set(notes.map((n) => n.created_by).filter(Boolean))] as string[]
+  const profileMap = new Map<string, Profile>()
+  if (authorIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, first_name")
+      .in("id", authorIds)
+    ;(profiles ?? []).forEach((p) => profileMap.set(p.id, p as Profile))
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <NoteAddForm
-        projectId={projectId}
-        organizationId={organizationId}
-        defaultType="wiki"
-        placeholder="Añade documentación técnica, configuración o runbook..."
-      />
+      <WikiAddForm projectId={projectId} organizationId={organizationId} />
 
       {notes.length === 0 ? (
         <EmptyState
@@ -51,40 +73,31 @@ export async function TabWiki({ projectId, organizationId }: Props) {
         />
       ) : (
         <ul className="flex flex-col gap-3">
-          {notes.map((note) => (
-            <li key={note.id} className="rounded-xl border bg-card p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    {note.pinned ? <span className="text-amber-500 text-xs">📌 Fijada</span> : null}
-                    {note.type === "snippet" ? (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        {note.metadata?.language ?? "snippet"}
-                      </span>
-                    ) : null}
-                    {note.title ? (
-                      <span className="font-semibold text-foreground">{note.title}</span>
-                    ) : null}
-                  </div>
-                  {note.type === "snippet" ? (
-                    <pre className="mt-2 overflow-x-auto rounded-md bg-muted p-3 text-xs text-foreground">
-                      {note.body}
-                    </pre>
-                  ) : (
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{note.body}</p>
-                  )}
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Actualizado {formatDateTime(note.updated_at)}
-                  </p>
-                </div>
-                <NoteActions
-                  noteId={note.id}
-                  projectId={projectId}
-                  defaultValues={{ title: note.title ?? "", body: note.body, pinned: note.pinned }}
-                />
-              </div>
-            </li>
-          ))}
+          {notes.map((note) => {
+            const profile = note.created_by ? profileMap.get(note.created_by) : undefined
+            const name = getAuthorName(profile)
+            const initial = name.charAt(0).toUpperCase()
+            const displayDate = note.entry_date
+              ? formatDate(note.entry_date)
+              : formatTimestamp(note.updated_at)
+
+            return (
+              <WikiNoteCard
+                key={note.id}
+                noteId={note.id}
+                projectId={projectId}
+                type={note.type}
+                title={note.title}
+                body={note.body}
+                pinned={note.pinned}
+                metadata={note.metadata}
+                entryDate={note.entry_date}
+                displayDate={displayDate}
+                authorName={name}
+                authorInitial={initial}
+              />
+            )
+          })}
         </ul>
       )}
     </div>

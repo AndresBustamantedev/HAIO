@@ -37,6 +37,7 @@ export async function createQuote(input: QuoteInput): Promise<ActionResult> {
     .insert({
       organization_id: organization.organizationId,
       client_id: parsed.data.client_id,
+      project_id: parsed.data.project_id || null,
       quote_number: quoteNumber,
       status: parsed.data.status,
       issue_date: parsed.data.issue_date,
@@ -72,6 +73,7 @@ export async function createQuote(input: QuoteInput): Promise<ActionResult> {
 
   revalidatePath("/presupuestos")
   revalidatePath(`/clientes/${parsed.data.client_id}`)
+  if (parsed.data.project_id) revalidatePath(`/proyectos/${parsed.data.project_id}`)
 
   return { error: null, quoteId: quote.id }
 }

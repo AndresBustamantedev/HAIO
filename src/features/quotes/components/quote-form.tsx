@@ -26,16 +26,18 @@ import {
 import { QUOTE_STATUSES, quoteSchema, type QuoteInput } from "@/features/quotes/schemas/quote-schema"
 import { getQuoteStatusBadge } from "@/features/quotes/utils/status"
 import type { ClientOption } from "@/features/quotes/types"
+import type { ProjectOption } from "@/lib/supabase/queries/client-options"
 
 type QuoteFormProps = {
   defaultValues?: Partial<QuoteInput>
   clientOptions: ClientOption[]
+  projectOptions?: ProjectOption[]
   onSubmit: (values: QuoteInput) => Promise<{ error: string | null }>
   onSuccess: () => void
   submitLabel?: string
 }
 
-function QuoteForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitLabel = "Guardar" }: QuoteFormProps) {
+function QuoteForm({ defaultValues, clientOptions, projectOptions, onSubmit, onSuccess, submitLabel = "Guardar" }: QuoteFormProps) {
   const [isPending, startTransition] = React.useTransition()
   const [formError, setFormError] = React.useState<string | null>(null)
 
@@ -43,6 +45,7 @@ function QuoteForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitLa
     resolver: zodResolver(quoteSchema),
     defaultValues: {
       client_id: "",
+      project_id: "",
       status: "draft",
       issue_date: new Date().toISOString().slice(0, 10),
       valid_until: "",
@@ -52,6 +55,17 @@ function QuoteForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitLa
       ...defaultValues,
     },
   })
+
+  const selectedClientId = form.watch("client_id")
+  const filteredProjects = (projectOptions ?? []).filter((p) => p.client_id === selectedClientId)
+
+  const prevClientRef = React.useRef(selectedClientId)
+  React.useEffect(() => {
+    if (prevClientRef.current !== selectedClientId) {
+      form.setValue("project_id", "")
+      prevClientRef.current = selectedClientId
+    }
+  }, [selectedClientId, form])
 
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "items" })
   const items = form.watch("items")
@@ -105,6 +119,40 @@ function QuoteForm({ defaultValues, clientOptions, onSubmit, onSuccess, submitLa
               </FormItem>
             )}
           />
+
+          {filteredProjects.length > 0 && (
+            <FormField
+              control={form.control}
+              name="project_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Proyecto</FormLabel>
+                  <Select
+                    value={field.value ?? ""}
+                    onValueChange={field.onChange}
+                    items={{ "": "Sin proyecto asignado", ...Object.fromEntries(filteredProjects.map((p) => [p.id, p.name])) }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        {(val: string) =>
+                          val
+                            ? (filteredProjects.find((p) => p.id === val)?.name ?? val)
+                            : "Sin proyecto asignado"
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin proyecto asignado</SelectItem>
+                      {filteredProjects.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <FormField

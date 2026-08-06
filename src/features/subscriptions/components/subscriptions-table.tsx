@@ -4,7 +4,7 @@ import { DataTable, type DataTableColumn } from "@/components/tables/data-table"
 import { StatusBadge } from "@/components/common/status-badge"
 import { SubscriptionRowActions } from "@/features/subscriptions/components/subscription-row-actions"
 import { getBillingIntervalLabel, getSubscriptionStatusBadge } from "@/features/subscriptions/utils/status"
-import type { ClientOption, ServiceOption, SubscriptionWithRelations } from "@/features/subscriptions/types"
+import type { ClientOption, ProjectOption, ServiceOption, SubscriptionWithRelations } from "@/features/subscriptions/types"
 
 function formatDate(value: string | null) {
   if (!value) return "—"
@@ -67,10 +67,12 @@ function SubscriptionsTable({
   subscriptions,
   clientOptions,
   serviceOptions,
+  projectOptions,
 }: {
   subscriptions: SubscriptionWithRelations[]
   clientOptions: ClientOption[]
   serviceOptions: ServiceOption[]
+  projectOptions?: ProjectOption[]
 }) {
   return (
     <DataTable
@@ -78,7 +80,7 @@ function SubscriptionsTable({
       rows={subscriptions}
       getRowId={(subscription) => subscription.id}
       rowActions={(subscription) => (
-        <SubscriptionRowActions subscription={subscription} clientOptions={clientOptions} serviceOptions={serviceOptions} />
+        <SubscriptionRowActions subscription={subscription} clientOptions={clientOptions} serviceOptions={serviceOptions} projectOptions={projectOptions} />
       )}
       emptyTitle="Todavía no hay suscripciones"
       emptyDescription="Crea la primera suscripción recurrente."

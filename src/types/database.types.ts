@@ -4553,6 +4553,7 @@ export type Database = {
         | "failed"
         | "cancelled"
       billing_interval:
+        | "daily"
         | "weekly"
         | "monthly"
         | "quarterly"
@@ -4882,6 +4883,7 @@ export const Constants = {
         "cancelled",
       ],
       billing_interval: [
+        "daily",
         "weekly",
         "monthly",
         "quarterly",

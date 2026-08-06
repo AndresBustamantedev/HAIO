@@ -40,6 +40,93 @@ async function verifyLocalResource(
   return !!data
 }
 
+function mapExternalStatusToDomain(externalStatus: string | null): string {
+  switch (externalStatus?.toLowerCase()) {
+    case 'active': return 'active'
+    case 'expired': return 'expired'
+    case 'cancelled':
+    case 'canceled': return 'cancelled'
+    default: return 'unknown'
+  }
+}
+
+async function syncDomainToLocalTable(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  organizationId: string,
+  resource: {
+    external_name: string
+    external_status: string | null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    raw_metadata: Record<string, any> | null
+  },
+  localResourceType: 'project' | 'client',
+  localResourceId: string,
+): Promise<void> {
+  const meta = (resource.raw_metadata ?? {}) as Record<string, unknown>
+  const expiresOn = typeof meta.expiresOn === 'string' ? meta.expiresOn.split('T')[0] : null
+  const autoRenew = typeof meta.autoRenew === 'boolean' ? meta.autoRenew : false
+  const nameservers = Array.isArray(meta.nameservers)
+    ? (meta.nameservers as string[]).filter((ns): ns is string => typeof ns === 'string')
+    : []
+  const registrarName = typeof meta.registrarName === 'string' ? meta.registrarName : null
+  const registeredOn = typeof meta.createdAt === 'string' ? meta.createdAt.split('T')[0] : null
+  const domainStatus = mapExternalStatusToDomain(resource.external_status)
+
+  // Check if a domains row already exists for this domain name in this org
+  const { data: existing } = await db
+    .from('domains')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('domain_name', resource.external_name)
+    .is('deleted_at', null)
+    .maybeSingle()
+
+  if (existing) {
+    const update =
+      localResourceType === 'project'
+        ? { project_id: localResourceId }
+        : { client_id: localResourceId }
+    await db.from('domains').update(update).eq('id', existing.id)
+  } else if (localResourceType === 'project') {
+    // Auto-create: need client_id from the project (client_id is NOT NULL in domains)
+    const { data: project } = await db
+      .from('projects')
+      .select('client_id')
+      .eq('id', localResourceId)
+      .single()
+    if (!project?.client_id) return
+    await db.from('domains').insert({
+      organization_id: organizationId,
+      client_id: project.client_id,
+      project_id: localResourceId,
+      domain_name: resource.external_name,
+      status: domainStatus,
+      registrar_name: registrarName,
+      registered_on: registeredOn,
+      expires_on: expiresOn,
+      auto_renew: autoRenew,
+      nameservers,
+      managed_by_us: false,
+    })
+  } else {
+    // Auto-create for client
+    await db.from('domains').insert({
+      organization_id: organizationId,
+      client_id: localResourceId,
+      project_id: null,
+      domain_name: resource.external_name,
+      status: domainStatus,
+      registrar_name: registrarName,
+      registered_on: registeredOn,
+      expires_on: expiresOn,
+      auto_renew: autoRenew,
+      nameservers,
+      managed_by_us: false,
+    })
+  }
+}
+
 /**
  * Vincula un recurso externo a un dominio local existente.
  * Ambas entidades deben pertenecer a la misma organización.
@@ -62,10 +149,10 @@ export async function linkExternalResource(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
 
-  // Verificar que el recurso externo pertenece a la organización
+  // Fetch with domain fields for potential sync to domains table
   const { data: resource } = await db
     .from('external_resources')
-    .select('id, integration_id')
+    .select('id, integration_id, external_resource_type, external_name, external_status, raw_metadata')
     .eq('id', parsed.data.externalResourceId)
     .eq('organization_id', organization.organizationId)
     .maybeSingle()
@@ -95,8 +182,29 @@ export async function linkExternalResource(
 
   if (error) return { error: 'No se pudo vincular el recurso.' }
 
+  // When linking an external domain to a project or client, also create/update
+  // the corresponding domains row so it appears in project/client infrastructure views.
+  if (
+    resource.external_resource_type === 'domain' &&
+    resource.external_name &&
+    (parsed.data.localResourceType === 'project' || parsed.data.localResourceType === 'client')
+  ) {
+    await syncDomainToLocalTable(
+      db,
+      organization.organizationId,
+      resource,
+      parsed.data.localResourceType,
+      parsed.data.localResourceId,
+    )
+  }
+
   revalidatePath('/integraciones')
   revalidatePath('/integraciones/recursos-sin-asignar')
+  if (parsed.data.localResourceType === 'project') {
+    revalidatePath(`/proyectos/${parsed.data.localResourceId}`)
+  } else if (parsed.data.localResourceType === 'client') {
+    revalidatePath(`/clientes/${parsed.data.localResourceId}`)
+  }
 
   return { error: null }
 }

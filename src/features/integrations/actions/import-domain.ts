@@ -123,6 +123,10 @@ export async function importDomainFromResource(
   revalidatePath('/dominios')
   revalidatePath('/integraciones')
   revalidatePath('/integraciones/recursos-sin-asignar')
+  revalidatePath(`/clientes/${parsed.data.clientId}`)
+  if (parsed.data.projectId) {
+    revalidatePath(`/proyectos/${parsed.data.projectId}`)
+  }
 
   return { error: null, domainId: newDomain.id }
 }

@@ -12,7 +12,7 @@ import { SUBSCRIPTION_STATUSES } from "@/features/subscriptions/schemas/subscrip
 import { getSubscriptionStatusBadge } from "@/features/subscriptions/utils/status";
 import { getSubscriptions } from "@/features/subscriptions/queries/get-subscriptions";
 import { getServiceOptions } from "@/features/services/queries/get-service-options";
-import { getClientOptions } from "@/lib/supabase/queries/client-options";
+import { getClientOptions, getProjectOptions } from "@/lib/supabase/queries/client-options";
 import { getCurrentOrganization } from "@/lib/supabase/queries/organizations";
 
 type SuscripcionesPageProps = {
@@ -43,11 +43,13 @@ export default async function SuscripcionesPage({ searchParams }: SuscripcionesP
   let result;
   let clientOptions;
   let serviceOptions;
+  let projectOptions;
   try {
-    [result, clientOptions, serviceOptions] = await Promise.all([
+    [result, clientOptions, serviceOptions, projectOptions] = await Promise.all([
       getSubscriptions({ organizationId: organization.organizationId, status, clientId, page }),
       getClientOptions(organization.organizationId),
       getServiceOptions(organization.organizationId),
+      getProjectOptions(organization.organizationId),
     ]);
   } catch {
     return (
@@ -63,7 +65,7 @@ export default async function SuscripcionesPage({ searchParams }: SuscripcionesP
       <PageHeader
         title="Suscripciones"
         description="Servicios recurrentes contratados por tus clientes."
-        actions={<CreateSubscriptionButton clientOptions={clientOptions} serviceOptions={serviceOptions} />}
+        actions={<CreateSubscriptionButton clientOptions={clientOptions} serviceOptions={serviceOptions} projectOptions={projectOptions} />}
       />
 
       <FilterBar
@@ -82,7 +84,7 @@ export default async function SuscripcionesPage({ searchParams }: SuscripcionesP
         ]}
       />
 
-      <SubscriptionsTable subscriptions={result.subscriptions} clientOptions={clientOptions} serviceOptions={serviceOptions} />
+      <SubscriptionsTable subscriptions={result.subscriptions} clientOptions={clientOptions} serviceOptions={serviceOptions} projectOptions={projectOptions} />
 
       <TablePagination
         page={result.page}

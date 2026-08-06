@@ -8,15 +8,17 @@ import { QuoteForm } from "@/features/quotes/components/quote-form"
 import { createQuote } from "@/features/quotes/actions/create-quote"
 import { updateQuote } from "@/features/quotes/actions/update-quote"
 import type { ClientOption, QuoteDetail } from "@/features/quotes/types"
+import type { ProjectOption } from "@/lib/supabase/queries/client-options"
 
 type QuoteFormDrawerProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   clientOptions: ClientOption[]
+  projectOptions?: ProjectOption[]
   quoteDetail?: QuoteDetail
 }
 
-function QuoteFormDrawer({ open, onOpenChange, clientOptions, quoteDetail }: QuoteFormDrawerProps) {
+function QuoteFormDrawer({ open, onOpenChange, clientOptions, projectOptions, quoteDetail }: QuoteFormDrawerProps) {
   const router = useRouter()
   const isEdit = !!quoteDetail
 
@@ -29,10 +31,12 @@ function QuoteFormDrawer({ open, onOpenChange, clientOptions, quoteDetail }: Quo
     >
       <QuoteForm
         clientOptions={clientOptions}
+        projectOptions={projectOptions}
         defaultValues={
           quoteDetail
             ? {
                 client_id: quoteDetail.quote.client_id,
+                project_id: quoteDetail.quote.project_id ?? "",
                 status: quoteDetail.quote.status,
                 issue_date: quoteDetail.quote.issue_date,
                 valid_until: quoteDetail.quote.valid_until ?? "",

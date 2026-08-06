@@ -1,9 +1,9 @@
 import Link from "next/link"
-import { ChevronRightIcon } from "lucide-react"
 
 import { createClient } from "@/lib/supabase/server"
 import { EmptyState } from "@/components/common/empty-state"
 import { CostAddExpense } from "./cost-add-expense"
+import { InfraAddButton } from "./infra-add-button"
 import { CostExpenseActions } from "./cost-expense-actions"
 import { CostAddService } from "./cost-add-service"
 import { CostAddMilestone } from "./cost-add-milestone"
@@ -46,7 +46,7 @@ const VIEWS: { id: View; label: string }[] = [
 ]
 
 const BILLING_LABEL: Record<string, string> = {
-  weekly: "Semanal", monthly: "Mensual", quarterly: "Trimestral",
+  daily: "Diario", weekly: "Semanal", monthly: "Mensual", quarterly: "Trimestral",
   semiannual: "Semestral", annual: "Anual", biennial: "Bienal",
   custom: "Personalizado", one_time: "Único",
 }
@@ -122,6 +122,7 @@ function fmtDate(v: string | null) {
 
 function toAnnual(amount: number, interval: string | null): number {
   switch (interval) {
+    case "daily":     return amount * 365
     case "weekly":    return amount * 52
     case "monthly":   return amount * 12
     case "quarterly": return amount * 4
@@ -192,10 +193,20 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
   const cur = currencyCode ?? "EUR"
   const supabase = await createClient()
 
-  const [serviceOptions, milestones, subscriptions, servicesRes, hostingRes, domainsRes, expensesRes] = await Promise.all([
+  const subscriptions = await getProjectSubscriptions(projectId)
+
+  const [serviceOptions, milestones, subInvoicesRes, servicesRes, hostingRes, domainsRes, expensesRes, projectRes, clientRes] = await Promise.all([
     getServiceOptions(organizationId),
     getProjectMilestones(projectId),
-    getProjectSubscriptions(projectId),
+    // Facturas borrador vinculadas a suscripciones de este proyecto
+    subscriptions.length > 0
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (supabase as any)
+          .from("invoices")
+          .select("id, subscription_id, invoice_number, status")
+          .in("subscription_id", subscriptions.map((s) => s.id))
+          .not("status", "in", '("void","refunded")')
+      : Promise.resolve({ data: [] }),
     supabase
       .from("client_services")
       .select("id, service_id, name_override, quantity, unit_price, currency_code, billing_interval, starts_on, ends_on, notes, status, services(name, category)")
@@ -219,7 +230,18 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
       .eq("project_id", projectId)
       .is("deleted_at", null)
       .order("incurred_at", { ascending: false }),
+    supabase.from("projects").select("id, name").eq("id", projectId).single(),
+    supabase.from("clients").select("id, display_name").eq("id", clientId).single(),
   ])
+
+  type SubInvoice = { id: string; subscription_id: string; invoice_number: string; status: string }
+  const subInvoiceMap = new Map<string, SubInvoice>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ((subInvoicesRes.data ?? []) as SubInvoice[]).map((inv) => [inv.subscription_id, inv])
+  )
+
+  const projectName = projectRes.data?.name ?? ""
+  const clientOptions = clientRes.data ? [{ id: clientRes.data.id, display_name: clientRes.data.display_name }] : []
 
   const services = servicesRes.data ?? []
   const hosting = hostingRes.data ?? []
@@ -245,22 +267,23 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
   const milestonesPending    = pendingMilestones.reduce((acc, m) => acc + m.amount, 0)
   const milestonesInternalCost = milestones.reduce((acc, m) => acc + (m.internal_cost ?? 0), 0)
 
-  const subscriptionsAnnual    = subscriptions.reduce((acc, s) => acc + toAnnual(s.amount, s.billing_interval), 0)
-  const servicesAnnual         = services.reduce((acc, s) => acc + toAnnual(s.unit_price * s.quantity, s.billing_interval), 0)
-  const domainsRenewalAnnual   = domains.reduce((acc, d) => acc + (d.renewal_price ?? 0), 0)
-  const hostingRenewalAnnual   = hosting.reduce((acc, h) => acc + toAnnual(h.renewal_price ?? 0, h.billing_interval), 0)
-  const totalAnnualRevenue     = subscriptionsAnnual + servicesAnnual + domainsRenewalAnnual + hostingRenewalAnnual
+  const subscriptionsAnnual = subscriptions.reduce((acc, s) => acc + toAnnual(s.amount, s.billing_interval), 0)
+  const servicesAnnual      = services.reduce((acc, s) => acc + toAnnual(s.unit_price * s.quantity, s.billing_interval), 0)
+  // Revenue = only what we charge the client (subscriptions + services)
+  const totalAnnualRevenue  = subscriptionsAnnual + servicesAnnual
 
   const generalExpensesTotal   = generalExpenses.reduce((acc, e) => acc + e.amount, 0)
   const milestoneExpensesTotal = Object.values(milestoneExpensesMap).flat().reduce((acc, e) => acc + e.amount, 0)
   const expensesTotal          = generalExpensesTotal + milestoneExpensesTotal
-  const domainsInternalAnnual  = domains.reduce((acc, d) => acc + (d.internal_cost ?? 0), 0)
-  const hostingInternalAnnual  = hosting.reduce((acc, h) => acc + toAnnual(h.internal_cost ?? 0, h.billing_interval), 0)
+  // Infrastructure cost = what WE pay (renewal_price = registrar/host cost; fallback to internal_cost for legacy data)
+  const domainsInfraCost   = domains.reduce((acc, d) => acc + (d.renewal_price ?? d.internal_cost ?? 0), 0)
+  const hostingInfraCost   = hosting.reduce((acc, h) => acc + toAnnual(h.renewal_price ?? h.internal_cost ?? 0, h.billing_interval), 0)
+  const totalInfraCost     = domainsInfraCost + hostingInfraCost
 
-  const devMargin      = milestonesRevenue > 0 ? milestonesRevenue - milestonesInternalCost - expensesTotal : null
-  const recurringMargin = totalAnnualRevenue - (domainsInternalAnnual + hostingInternalAnnual)
+  const devMargin       = (milestonesRevenue > 0 || expensesTotal > 0 || milestonesInternalCost > 0) ? milestonesRevenue - milestonesInternalCost - expensesTotal : null
+  const recurringMargin = totalAnnualRevenue - totalInfraCost
 
-  const hasInternalCosts = domains.some(d => d.internal_cost) || hosting.some(h => h.internal_cost)
+  const hasInfraCosts = domains.some(d => d.renewal_price != null || d.internal_cost != null) || hosting.some(h => h.renewal_price != null || h.internal_cost != null)
 
   return (
     <div className="flex flex-col gap-5">
@@ -370,10 +393,16 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
                     <span className="font-mono text-red-600 dark:text-red-400">−{fmt(milestonesInternalCost, cur)}</span>
                   </div>
                 )}
-                {expensesTotal > 0 && (
+                {milestoneExpensesTotal > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Gastos del proyecto</span>
-                    <span className="font-mono text-red-600 dark:text-red-400">−{fmt(expensesTotal, cur)}</span>
+                    <span className="text-muted-foreground">Gastos de hitos</span>
+                    <span className="font-mono text-red-600 dark:text-red-400">−{fmt(milestoneExpensesTotal, cur)}</span>
+                  </div>
+                )}
+                {generalExpensesTotal > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Gastos generales</span>
+                    <span className="font-mono text-red-600 dark:text-red-400">−{fmt(generalExpensesTotal, cur)}</span>
                   </div>
                 )}
                 {devMargin != null && (
@@ -390,10 +419,10 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
                       <span className="text-muted-foreground">Ingresos recurrentes / año</span>
                       <span className="font-mono text-green-600 dark:text-green-400">+{fmt(totalAnnualRevenue, cur)}</span>
                     </div>
-                    {(domainsInternalAnnual + hostingInternalAnnual) > 0 && (
+                    {totalInfraCost > 0 && (
                       <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">Costes recurrentes / año</span>
-                        <span className="font-mono text-red-600 dark:text-red-400">−{fmt(domainsInternalAnnual + hostingInternalAnnual, cur)}</span>
+                        <span className="text-muted-foreground">Costes de infraestructura / año</span>
+                        <span className="font-mono text-red-600 dark:text-red-400">−{fmt(totalInfraCost, cur)}</span>
                       </div>
                     )}
                     <div className="flex items-center justify-between border-t pt-2">
@@ -538,6 +567,7 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
                       <th className="pb-2 pt-3 text-left font-medium">Estado</th>
                       <th className="pb-2 pt-3 text-left font-medium">Ciclo</th>
                       <th className="pb-2 pt-3 text-left font-medium">Próxima renovación</th>
+                      <th className="pb-2 pt-3 text-left font-medium">Factura</th>
                       <th className="pb-2 pt-3 text-right font-medium">Importe</th>
                       <th className="pb-2 pt-3 pr-4 text-right font-medium">Equiv. anual</th>
                     </tr>
@@ -555,6 +585,7 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
                       const statusLabel: Record<string, string> = {
                         active: "Activa", trialing: "Prueba", past_due: "Vencida", paused: "Pausada",
                       }
+                      const linkedInvoice = subInvoiceMap.get(s.id)
                       return (
                         <tr key={s.id} className="border-b last:border-0">
                           <td className="py-2.5 pl-4 font-medium text-foreground">{svcName}</td>
@@ -565,6 +596,15 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
                           </td>
                           <td className="py-2.5 text-muted-foreground">{BILLING_LABEL[s.billing_interval] ?? s.billing_interval}</td>
                           <td className="py-2.5 text-muted-foreground">{fmtDate(s.current_period_end)}</td>
+                          <td className="py-2.5">
+                            {linkedInvoice ? (
+                              <span className="inline-flex items-center rounded-full bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300 px-2 py-0.5 text-xs font-medium font-mono">
+                                {linkedInvoice.invoice_number}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/40">—</span>
+                            )}
+                          </td>
                           <td className="py-2.5 text-right font-mono">{fmt(s.amount, cur)}</td>
                           <td className="py-2.5 pr-4 text-right font-mono text-muted-foreground">{fmt(annual, cur)}</td>
                         </tr>
@@ -574,7 +614,7 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
                   {subscriptions.length > 1 && (
                     <tfoot>
                       <tr className="border-t bg-muted/30">
-                        <td colSpan={5} className="py-2.5 pl-4 text-xs text-muted-foreground">Total anual estimado</td>
+                        <td colSpan={6} className="py-2.5 pl-4 text-xs text-muted-foreground">Total anual estimado</td>
                         <td className="py-2.5 pr-4 text-right font-mono font-semibold">{fmt(subscriptionsAnnual, cur)}</td>
                       </tr>
                     </tfoot>
@@ -660,62 +700,7 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
             )}
           </div>
 
-          {/* Renovaciones facturadas al cliente */}
-          {(domains.some(d => d.renewal_price != null) || hosting.some(h => h.renewal_price != null)) && (
-            <div className="rounded-xl border bg-card">
-              <div className="px-4 py-3 border-b">
-                <p className="text-sm font-medium text-foreground">
-                  Renovaciones facturadas al cliente
-                  <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                    ({domains.filter(d => d.renewal_price != null).length + hosting.filter(h => h.renewal_price != null).length})
-                  </span>
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-xs text-muted-foreground">
-                      <th className="pb-2 pt-3 pl-4 text-left font-medium">Recurso</th>
-                      <th className="pb-2 pt-3 text-left font-medium">Tipo</th>
-                      <th className="pb-2 pt-3 text-left font-medium">Ciclo</th>
-                      <th className="pb-2 pt-3 text-left font-medium">Vence</th>
-                      <th className="pb-2 pt-3 pr-4 text-right font-medium">Precio</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {domains.filter(d => d.renewal_price != null).map((d) => (
-                      <tr key={d.id} className="border-b last:border-0">
-                        <td className="py-2.5 pl-4 font-medium text-foreground">{d.domain_name}</td>
-                        <td className="py-2.5 text-muted-foreground">Dominio</td>
-                        <td className="py-2.5 text-muted-foreground">Anual</td>
-                        <td className="py-2.5 text-muted-foreground">{fmtDate(d.expires_on)}</td>
-                        <td className="py-2.5 pr-4 text-right font-mono">{fmt(d.renewal_price, d.currency_code ?? cur)}</td>
-                      </tr>
-                    ))}
-                    {hosting.filter(h => h.renewal_price != null).map((h) => (
-                      <tr key={h.id} className="border-b last:border-0">
-                        <td className="py-2.5 pl-4 font-medium text-foreground">{h.provider_name}{h.plan_name ? ` — ${h.plan_name}` : ""}</td>
-                        <td className="py-2.5 text-muted-foreground">Hosting</td>
-                        <td className="py-2.5 text-muted-foreground">{BILLING_LABEL[h.billing_interval ?? ""] ?? "—"}</td>
-                        <td className="py-2.5 text-muted-foreground">{fmtDate(h.expires_on)}</td>
-                        <td className="py-2.5 pr-4 text-right font-mono">{fmt(h.renewal_price, h.currency_code ?? cur)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  {(domainsRenewalAnnual + hostingRenewalAnnual) > 0 && (
-                    <tfoot>
-                      <tr className="border-t bg-muted/30">
-                        <td colSpan={4} className="py-2.5 pl-4 text-xs text-muted-foreground">Total anual estimado</td>
-                        <td className="py-2.5 pr-4 text-right font-mono font-semibold">{fmt(domainsRenewalAnnual + hostingRenewalAnnual, cur)}</td>
-                      </tr>
-                    </tfoot>
-                  )}
-                </table>
-              </div>
-            </div>
-          )}
-
-          {subscriptions.length === 0 && services.length === 0 && !domains.some(d => d.renewal_price) && !hosting.some(h => h.renewal_price) && (
+          {subscriptions.length === 0 && services.length === 0 && (
             <div className="rounded-xl border bg-card px-4 py-8">
               <EmptyState
                 title="Sin servicios recurrentes"
@@ -791,63 +776,72 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
               )}
             </div>
 
-            {/* Costes de proveedores */}
-            {hasInternalCosts && (
-              <details className="group rounded-xl border bg-card overflow-hidden">
-                <summary className="flex cursor-pointer select-none items-center gap-2 px-4 py-3 text-sm font-medium hover:bg-muted/40 transition-colors [&::-webkit-details-marker]:hidden">
-                  <ChevronRightIcon className="size-4 text-muted-foreground transition-transform group-open:rotate-90" />
-                  Costes de proveedores
-                  <span className="ml-1 text-xs font-normal text-muted-foreground">
-                    {fmt(domainsInternalAnnual + hostingInternalAnnual, cur)}/año
-                  </span>
-                </summary>
-                <div className="border-t px-4 py-4">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b text-xs text-muted-foreground">
-                          <th className="pb-2 text-left font-medium">Recurso</th>
-                          <th className="pb-2 text-left font-medium">Tipo</th>
-                          <th className="pb-2 text-left font-medium">Ciclo</th>
-                          <th className="pb-2 text-left font-medium">Vence</th>
-                          <th className="pb-2 text-right font-medium">Coste</th>
-                          <th className="pb-2 text-right font-medium">Equiv. anual</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {domains.filter(d => d.internal_cost != null).map((d) => (
+            {/* Costes de infraestructura (lo que pagamos a registradores y proveedores) */}
+            {hasInfraCosts && (
+              <div className="rounded-xl border bg-card">
+                <div className="flex items-center justify-between gap-3 px-4 py-3 border-b">
+                  <p className="text-sm font-medium text-foreground">
+                    Costes de infraestructura
+                    <span className="ml-1.5 text-xs font-normal text-muted-foreground">{fmt(totalInfraCost, cur)}/año</span>
+                  </p>
+                  <InfraAddButton
+                    projectId={projectId}
+                    projectName={projectName}
+                    clientId={clientId}
+                    clientOptions={clientOptions}
+                  />
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-xs text-muted-foreground">
+                        <th className="pb-2 pt-3 pl-4 text-left font-medium">Recurso</th>
+                        <th className="pb-2 pt-3 text-left font-medium">Tipo</th>
+                        <th className="pb-2 pt-3 text-left font-medium">Ciclo</th>
+                        <th className="pb-2 pt-3 text-left font-medium">Vence</th>
+                        <th className="pb-2 pt-3 text-right font-medium">Coste</th>
+                        <th className="pb-2 pt-3 pr-4 text-right font-medium">Equiv. anual</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {domains.filter(d => (d.renewal_price ?? d.internal_cost) != null).map((d) => {
+                        const cost = d.renewal_price ?? d.internal_cost ?? 0
+                        return (
                           <tr key={d.id} className="border-b last:border-0">
-                            <td className="py-2.5 font-medium text-foreground">{d.domain_name}</td>
+                            <td className="py-2.5 pl-4 font-medium text-foreground">{d.domain_name}</td>
                             <td className="py-2.5 text-muted-foreground">Dominio</td>
                             <td className="py-2.5 text-muted-foreground">Anual</td>
                             <td className="py-2.5 text-muted-foreground">{fmtDate(d.expires_on)}</td>
-                            <td className="py-2.5 text-right font-mono">{fmt(d.internal_cost, d.currency_code ?? cur)}</td>
-                            <td className="py-2.5 text-right font-mono text-muted-foreground">{fmt(d.internal_cost, d.currency_code ?? cur)}</td>
+                            <td className="py-2.5 text-right font-mono">{fmt(cost, d.currency_code ?? cur)}</td>
+                            <td className="py-2.5 pr-4 text-right font-mono text-muted-foreground">{fmt(cost, d.currency_code ?? cur)}</td>
                           </tr>
-                        ))}
-                        {hosting.filter(h => h.internal_cost != null).map((h) => (
+                        )
+                      })}
+                      {hosting.filter(h => (h.renewal_price ?? h.internal_cost) != null).map((h) => {
+                        const cost = h.renewal_price ?? h.internal_cost ?? 0
+                        return (
                           <tr key={h.id} className="border-b last:border-0">
-                            <td className="py-2.5 font-medium text-foreground">{h.provider_name}{h.plan_name ? ` — ${h.plan_name}` : ""}</td>
+                            <td className="py-2.5 pl-4 font-medium text-foreground">{h.provider_name}{h.plan_name ? ` — ${h.plan_name}` : ""}</td>
                             <td className="py-2.5 text-muted-foreground">Hosting</td>
                             <td className="py-2.5 text-muted-foreground">{BILLING_LABEL[h.billing_interval ?? ""] ?? "—"}</td>
                             <td className="py-2.5 text-muted-foreground">{fmtDate(h.expires_on)}</td>
-                            <td className="py-2.5 text-right font-mono">{fmt(h.internal_cost, h.currency_code ?? cur)}</td>
-                            <td className="py-2.5 text-right font-mono text-muted-foreground">
-                              {fmt(toAnnual(h.internal_cost ?? 0, h.billing_interval), h.currency_code ?? cur)}
+                            <td className="py-2.5 text-right font-mono">{fmt(cost, h.currency_code ?? cur)}</td>
+                            <td className="py-2.5 pr-4 text-right font-mono text-muted-foreground">
+                              {fmt(toAnnual(cost, h.billing_interval), h.currency_code ?? cur)}
                             </td>
                           </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t bg-muted/30">
-                          <td colSpan={5} className="py-2.5 pl-0 text-xs text-muted-foreground">Total anual estimado</td>
-                          <td className="py-2.5 text-right font-mono font-semibold">{fmt(domainsInternalAnnual + hostingInternalAnnual, cur)}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
+                        )
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t bg-muted/30">
+                        <td colSpan={5} className="py-2.5 pl-4 text-xs text-muted-foreground">Total anual estimado</td>
+                        <td className="py-2.5 pr-4 text-right font-mono font-semibold">{fmt(totalInfraCost, cur)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
-              </details>
+              </div>
             )}
           </div>
 
@@ -869,10 +863,16 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
                       <span className="font-mono text-red-600 dark:text-red-400">−{fmt(milestonesInternalCost, cur)}</span>
                     </div>
                   )}
-                  {expensesTotal > 0 && (
+                  {milestoneExpensesTotal > 0 && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Gastos del proyecto</span>
-                      <span className="font-mono text-red-600 dark:text-red-400">−{fmt(expensesTotal, cur)}</span>
+                      <span className="text-muted-foreground">Gastos de hitos</span>
+                      <span className="font-mono text-red-600 dark:text-red-400">−{fmt(milestoneExpensesTotal, cur)}</span>
+                    </div>
+                  )}
+                  {generalExpensesTotal > 0 && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Gastos generales</span>
+                      <span className="font-mono text-red-600 dark:text-red-400">−{fmt(generalExpensesTotal, cur)}</span>
                     </div>
                   )}
                   {devMargin != null && (
@@ -889,10 +889,10 @@ export async function TabFinanzas({ projectId, clientId, budget, currencyCode, o
                         <span className="text-muted-foreground">Ingresos recurrentes / año</span>
                         <span className="font-mono text-green-600 dark:text-green-400">+{fmt(totalAnnualRevenue, cur)}</span>
                       </div>
-                      {(domainsInternalAnnual + hostingInternalAnnual) > 0 && (
+                      {totalInfraCost > 0 && (
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Costes recurrentes / año</span>
-                          <span className="font-mono text-red-600 dark:text-red-400">−{fmt(domainsInternalAnnual + hostingInternalAnnual, cur)}</span>
+                          <span className="text-muted-foreground">Costes de infraestructura / año</span>
+                          <span className="font-mono text-red-600 dark:text-red-400">−{fmt(totalInfraCost, cur)}</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between border-t pt-2">

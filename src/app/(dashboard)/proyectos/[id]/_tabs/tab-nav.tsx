@@ -5,12 +5,11 @@ import { useSearchParams } from "next/navigation"
 
 const TABS = [
   { id: "resumen",         label: "Resumen" },
-  { id: "infraestructura", label: "Infraestructura" },
-  { id: "vault",           label: "Vault" },
+  { id: "infraestructura", label: "Recursos" },
+  { id: "vault",           label: "Seguridad" },
   { id: "wordpress",       label: "WordPress" },
-  { id: "finanzas",         label: "Finanzas" },
-  { id: "wiki",            label: "Wiki" },
-  { id: "diario",          label: "Diario" },
+  { id: "finanzas",        label: "Finanzas" },
+  { id: "documentacion",   label: "Documentación" },
   { id: "backups",         label: "Backups" },
   { id: "accesos",         label: "Accesos" },
 ] as const
