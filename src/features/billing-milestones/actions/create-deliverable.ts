@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentOrganization } from "@/lib/supabase/queries/organizations"
+import { logMilestoneActivity } from "@/features/billing-milestones/utils/log-milestone-activity"
 
 type Input = {
   name: string
@@ -42,6 +43,12 @@ export async function createDeliverable(
     .single()
 
   if (error) return { error: error.message }
+
+  await logMilestoneActivity(
+    milestoneId, user?.id ?? null,
+    "deliverable_created",
+    `Entregable creado: "${data.name.trim()}"`,
+  )
 
   revalidatePath(`/proyectos/${projectId}/hitos/${milestoneId}`)
   return { error: null, id: row.id }

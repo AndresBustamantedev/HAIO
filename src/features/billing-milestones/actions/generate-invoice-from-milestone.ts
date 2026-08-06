@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentOrganization } from "@/lib/supabase/queries/organizations"
 import { nextDocumentNumber } from "@/lib/supabase/queries/sequences"
+import { logMilestoneActivity } from "@/features/billing-milestones/utils/log-milestone-activity"
 
 type ActionResult = { error: string | null; invoiceId?: string; invoiceNumber?: string }
 
@@ -140,6 +141,12 @@ export async function generateInvoiceFromMilestone(
     .from("project_milestones")
     .update({ billing_status: "invoice_draft" })
     .eq("id", milestoneId)
+
+  await logMilestoneActivity(
+    milestoneId, user?.id ?? null,
+    "invoice_generated",
+    `Factura ${invoiceNumber} generada como borrador`,
+  )
 
   revalidatePath(`/proyectos/${projectId}`)
   revalidatePath("/facturas")

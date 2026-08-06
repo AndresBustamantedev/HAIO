@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { milestoneSchema, type MilestoneInput } from "@/features/billing-milestones/schemas/milestone-schema"
+import { logMilestoneActivity } from "@/features/billing-milestones/utils/log-milestone-activity"
 
 type ActionResult = { error: string | null }
 
@@ -46,6 +47,8 @@ export async function updateMilestone(
   if (error) {
     return { error: "No se pudo actualizar el hito. " + error.message }
   }
+
+  await logMilestoneActivity(id, user?.id ?? null, "milestone_updated", `Hito actualizado: "${parsed.data.name}"`)
 
   revalidatePath(`/proyectos/${projectId}`)
   return { error: null }

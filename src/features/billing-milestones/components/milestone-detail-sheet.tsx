@@ -5,7 +5,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   ExternalLinkIcon, FileTextIcon, PencilIcon, Trash2Icon, MoreHorizontalIcon,
-  PlusIcon, CheckIcon, XIcon, Circle, CircleDot, CircleCheck,
+  PlusIcon, CheckIcon, XIcon, Circle, CircleDot, CircleCheck, ActivityIcon,
+  RefreshCwIcon, PlusCircleIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -21,6 +22,8 @@ import { FormDrawer } from "@/components/common/form-drawer"
 import { DeleteDialog } from "@/components/common/delete-dialog"
 import { MilestoneForm } from "@/features/billing-milestones/components/milestone-form"
 import { WorkStatusSelect, BillingStatusSelect } from "@/features/billing-milestones/components/milestone-status-select"
+import { CostAddExpense } from "@/app/(dashboard)/proyectos/[id]/_tabs/cost-add-expense"
+import { CostExpenseActions } from "@/app/(dashboard)/proyectos/[id]/_tabs/cost-expense-actions"
 import { getMilestoneDetailAction } from "@/features/billing-milestones/actions/get-milestone-detail-action"
 import { updateMilestone } from "@/features/billing-milestones/actions/update-milestone"
 import { deleteMilestone } from "@/features/billing-milestones/actions/delete-milestone"
@@ -65,6 +68,12 @@ const BILLING_STATUS_LABEL: Record<string, string> = {
   partially_paid: "Parcial", paid: "Cobrado", credited: "Abonado", cancelled: "Cancelado",
 }
 
+const INVOICE_STATUS_LABEL: Record<string, string> = {
+  draft: "Borrador", issued: "Emitida", sent: "Enviada", viewed: "Vista",
+  partially_paid: "Pag. parcial", paid: "Cobrada", overdue: "Vencida",
+  void: "Anulada", refunded: "Reembolsada",
+}
+
 const TYPE_LABEL: Record<string, string> = {
   development: "Desarrollo", maintenance: "Mantenimiento",
   extra: "Extra", renewal: "Renovación", other: "Otro",
@@ -76,10 +85,14 @@ const TRIGGER_LABEL: Record<string, string> = {
   client_approved: "Aprobación cliente",
 }
 
-const INVOICE_STATUS_LABEL: Record<string, string> = {
-  draft: "Borrador", issued: "Emitida", sent: "Enviada", viewed: "Vista",
-  partially_paid: "Parcialmente cobrada", paid: "Cobrada", overdue: "Vencida",
-  void: "Anulada", refunded: "Reembolsada",
+const METHOD_LABEL: Record<string, string> = {
+  bank_transfer: "Transferencia", card: "Tarjeta", cash: "Efectivo",
+  stripe: "Stripe", paypal: "PayPal", other: "Otro",
+}
+
+const CATEGORY_LABEL: Record<string, string> = {
+  hosting: "Hosting", domain: "Dominio", license: "Licencia",
+  tool: "Herramienta", design: "Diseño", development: "Desarrollo", other: "Otro",
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -92,6 +105,13 @@ function fmt(v: number | null | undefined, cur: string) {
 function fmtDate(v: string | null | undefined) {
   if (!v) return "—"
   return new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(v))
+}
+
+function fmtDateTime(v: string) {
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  }).format(new Date(v))
 }
 
 // ─── Shared sub-components ───────────────────────────────────────────────────
@@ -133,13 +153,10 @@ function TabResumen({ detail, projectId, onRefresh }: { detail: MilestoneDetail;
 
   return (
     <div className="flex flex-col gap-6 px-6 py-5">
-      {/* Información general */}
       <div>
         <SectionTitle>Información general</SectionTitle>
         <div className="divide-y divide-border/50">
-          <InfoRow label="Tipo">
-            {TYPE_LABEL[detail.type] ?? detail.type}
-          </InfoRow>
+          <InfoRow label="Tipo">{TYPE_LABEL[detail.type] ?? detail.type}</InfoRow>
           {detail.description && (
             <InfoRow label="Descripción">
               <span className="whitespace-pre-wrap text-left">{detail.description}</span>
@@ -157,7 +174,6 @@ function TabResumen({ detail, projectId, onRefresh }: { detail: MilestoneDetail;
         </div>
       </div>
 
-      {/* Estado */}
       <div>
         <SectionTitle>Estado</SectionTitle>
         <div className="divide-y divide-border/50">
@@ -172,15 +188,12 @@ function TabResumen({ detail, projectId, onRefresh }: { detail: MilestoneDetail;
         </div>
       </div>
 
-      {/* Importes */}
       <div>
         <SectionTitle>Importes</SectionTitle>
         <div className="divide-y divide-border/50">
           <InfoRow label="Importe base" mono>{fmt(detail.amount, cur)}</InfoRow>
           {detail.tax_rate != null && (
-            <InfoRow label={`Impuestos (${detail.tax_rate}%)`} mono>
-              {fmt(taxAmt, cur)}
-            </InfoRow>
+            <InfoRow label={`Impuestos (${detail.tax_rate}%)`} mono>{fmt(taxAmt, cur)}</InfoRow>
           )}
           <InfoRow label="Total" mono>
             <span className="font-semibold">{fmt(total, cur)}</span>
@@ -188,7 +201,6 @@ function TabResumen({ detail, projectId, onRefresh }: { detail: MilestoneDetail;
         </div>
       </div>
 
-      {/* Facturación */}
       {detail.invoice_id && (
         <div>
           <SectionTitle>Facturación</SectionTitle>
@@ -203,20 +215,17 @@ function TabResumen({ detail, projectId, onRefresh }: { detail: MilestoneDetail;
               </Link>
             </InfoRow>
             {detail.invoice_status && (
-              <InfoRow label="Estado">
+              <InfoRow label="Estado factura">
                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${BILLING_STATUS_STYLE[detail.invoice_status] ?? ""}`}>
                   {INVOICE_STATUS_LABEL[detail.invoice_status] ?? detail.invoice_status}
                 </span>
               </InfoRow>
             )}
-            {detail.billed_at && (
-              <InfoRow label="Fecha de cobro">{fmtDate(detail.billed_at)}</InfoRow>
-            )}
+            {detail.billed_at && <InfoRow label="Fecha de cobro">{fmtDate(detail.billed_at)}</InfoRow>}
           </div>
         </div>
       )}
 
-      {/* Costes y margen */}
       {(detail.internal_cost != null || detail.estimated_cost != null) && (
         <div>
           <SectionTitle>Costes y margen</SectionTitle>
@@ -241,22 +250,16 @@ function TabResumen({ detail, projectId, onRefresh }: { detail: MilestoneDetail;
         </div>
       )}
 
-      {/* Horas */}
       {(detail.estimated_hours != null || detail.actual_hours != null) && (
         <div>
           <SectionTitle>Horas</SectionTitle>
           <div className="divide-y divide-border/50">
-            {detail.estimated_hours != null && (
-              <InfoRow label="Horas estimadas">{detail.estimated_hours} h</InfoRow>
-            )}
-            {detail.actual_hours != null && (
-              <InfoRow label="Horas reales">{detail.actual_hours} h</InfoRow>
-            )}
+            {detail.estimated_hours != null && <InfoRow label="Horas estimadas">{detail.estimated_hours} h</InfoRow>}
+            {detail.actual_hours != null && <InfoRow label="Horas reales">{detail.actual_hours} h</InfoRow>}
           </div>
         </div>
       )}
 
-      {/* Notas públicas */}
       {detail.notes && (
         <div>
           <SectionTitle>Notas</SectionTitle>
@@ -319,21 +322,17 @@ function TabEntregables({
   const [items, setItems] = React.useState<MilestoneDeliverable[]>(detail.deliverables)
   const [pendingIds, setPendingIds] = React.useState<Set<string>>(new Set())
 
-  // Keep in sync when detail refreshes
   React.useEffect(() => { setItems(detail.deliverables) }, [detail.deliverables])
 
-  // Add form
   const [adding, setAdding] = React.useState(false)
   const [addName, setAddName] = React.useState("")
   const [addDueDate, setAddDueDate] = React.useState("")
   const [addPending, setAddPending] = React.useState(false)
 
-  // Edit drawer
   const [editing, setEditing] = React.useState<MilestoneDeliverable | null>(null)
   const [editForm, setEditForm] = React.useState({ name: "", description: "", due_date: "", external_url: "" })
   const [editPending, setEditPending] = React.useState(false)
 
-  // Notes inline edit
   const [editingNotes, setEditingNotes] = React.useState(false)
   const [notesValue, setNotesValue] = React.useState(detail.internal_notes ?? "")
   const [notesPending, setNotesPending] = React.useState(false)
@@ -346,7 +345,7 @@ function TabEntregables({
     const next = nextStatus(d.status as DelStatus)
     setItems(prev => prev.map(i => i.id === d.id ? { ...i, status: next } : i))
     setPendingIds(prev => new Set(prev).add(d.id))
-    const result = await updateDeliverableStatus(d.id, milestoneId, projectId, next)
+    const result = await updateDeliverableStatus(d.id, milestoneId, projectId, next, d.name)
     setPendingIds(prev => { const s = new Set(prev); s.delete(d.id); return s })
     if (result.error) {
       setItems(prev => prev.map(i => i.id === d.id ? { ...i, status: d.status } : i))
@@ -386,11 +385,8 @@ function TabEntregables({
 
   async function handleDelete(d: MilestoneDeliverable) {
     setItems(prev => prev.filter(i => i.id !== d.id))
-    const result = await deleteDeliverable(d.id, milestoneId, projectId)
-    if (result.error) {
-      toast.error(result.error)
-      await onRefresh()
-    }
+    const result = await deleteDeliverable(d.id, milestoneId, projectId, d.name)
+    if (result.error) { toast.error(result.error); await onRefresh() }
   }
 
   async function handleSaveNotes(e: React.FormEvent) {
@@ -406,12 +402,9 @@ function TabEntregables({
   return (
     <>
       <div className="flex flex-col">
-        {/* Header row */}
         <div className="flex items-center justify-between px-6 py-3 border-b">
           <p className="text-sm text-muted-foreground">
-            {items.length === 0
-              ? "Sin entregables aún."
-              : `${done} de ${items.length} completados`}
+            {items.length === 0 ? "Sin entregables aún." : `${done} de ${items.length} completados`}
           </p>
           {!adding && (
             <Button variant="outline" size="sm" onClick={() => setAdding(true)}>
@@ -421,7 +414,6 @@ function TabEntregables({
           )}
         </div>
 
-        {/* Table */}
         {items.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -466,10 +458,8 @@ function TabEntregables({
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           render={
-                            <button
-                              type="button"
-                              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-all"
-                            />
+                            <button type="button"
+                              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-all" />
                           }
                         >
                           <MoreHorizontalIcon className="size-4" />
@@ -478,12 +468,7 @@ function TabEntregables({
                           <DropdownMenuItem
                             onClick={() => {
                               setEditing(d)
-                              setEditForm({
-                                name: d.name,
-                                description: d.description ?? "",
-                                due_date: d.due_date ?? "",
-                                external_url: d.external_url ?? "",
-                              })
+                              setEditForm({ name: d.name, description: d.description ?? "", due_date: d.due_date ?? "", external_url: d.external_url ?? "" })
                             }}
                           >
                             <PencilIcon className="size-3.5 mr-2" />
@@ -496,10 +481,7 @@ function TabEntregables({
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onClick={() => handleDelete(d)}
-                          >
+                          <DropdownMenuItem variant="destructive" onClick={() => handleDelete(d)}>
                             <Trash2Icon className="size-3.5 mr-2" />
                             Eliminar
                           </DropdownMenuItem>
@@ -513,20 +495,17 @@ function TabEntregables({
           </div>
         )}
 
-        {/* Add inline form */}
         {adding && (
           <form onSubmit={handleAdd} className="border-t px-4 py-3 flex items-center gap-2">
             <input
-              autoFocus
-              value={addName}
+              autoFocus value={addName}
               onChange={e => setAddName(e.target.value)}
               placeholder="Nombre del entregable..."
               className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground"
               disabled={addPending}
             />
             <input
-              type="date"
-              value={addDueDate}
+              type="date" value={addDueDate}
               onChange={e => setAddDueDate(e.target.value)}
               className="text-xs text-muted-foreground bg-transparent outline-none border rounded px-2 py-1"
               disabled={addPending}
@@ -542,30 +521,23 @@ function TabEntregables({
           </form>
         )}
 
-        {/* Progress bar */}
         {items.length > 0 && (
           <div className="border-t px-6 py-3 flex items-center gap-3">
             <span className="text-xs text-muted-foreground">{pct}% completado</span>
             <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-violet-500 rounded-full transition-all duration-300"
-                style={{ width: `${pct}%` }}
-              />
+              <div className="h-full bg-violet-500 rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
             </div>
             <span className="text-xs text-muted-foreground">{done}/{items.length}</span>
           </div>
         )}
 
-        {/* Notas internas */}
         <div className="border-t px-6 py-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notas internas</p>
             {!editingNotes && (
-              <button
-                type="button"
+              <button type="button"
                 onClick={() => { setEditingNotes(true); setNotesValue(detail.internal_notes ?? "") }}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors">
                 Editar
               </button>
             )}
@@ -573,8 +545,7 @@ function TabEntregables({
           {editingNotes ? (
             <form onSubmit={handleSaveNotes} className="flex flex-col gap-2">
               <textarea
-                autoFocus
-                value={notesValue}
+                autoFocus value={notesValue}
                 onChange={e => setNotesValue(e.target.value)}
                 rows={4}
                 placeholder="Notas internas sobre este hito..."
@@ -585,8 +556,7 @@ function TabEntregables({
                 <Button type="submit" size="sm" disabled={notesPending}>
                   {notesPending ? "Guardando..." : "Guardar"}
                 </Button>
-                <Button type="button" variant="ghost" size="sm"
-                  onClick={() => setEditingNotes(false)}>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setEditingNotes(false)}>
                   Cancelar
                 </Button>
               </div>
@@ -599,7 +569,6 @@ function TabEntregables({
         </div>
       </div>
 
-      {/* Edit deliverable drawer */}
       <FormDrawer
         open={editing !== null}
         onOpenChange={(open) => { if (!open) setEditing(null) }}
@@ -609,42 +578,30 @@ function TabEntregables({
         <form onSubmit={handleEdit} className="flex flex-col gap-4 p-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium">Nombre</label>
-            <input
-              value={editForm.name}
-              onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+            <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
               className="h-9 rounded-md border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-ring"
-              required disabled={editPending}
-            />
+              required disabled={editPending} />
           </div>
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium">Descripción</label>
-            <textarea
-              value={editForm.description}
-              onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+            <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
               rows={3}
               className="rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring resize-none"
-              disabled={editPending}
-            />
+              disabled={editPending} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">Fecha límite</label>
-              <input
-                type="date" value={editForm.due_date}
-                onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
+              <input type="date" value={editForm.due_date} onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
                 className="h-9 rounded-md border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-ring"
-                disabled={editPending}
-              />
+                disabled={editPending} />
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">URL externa</label>
-              <input
-                type="url" value={editForm.external_url}
-                onChange={e => setEditForm(f => ({ ...f, external_url: e.target.value }))}
+              <input type="url" value={editForm.external_url} onChange={e => setEditForm(f => ({ ...f, external_url: e.target.value }))}
                 placeholder="https://..."
                 className="h-9 rounded-md border bg-background px-3 text-sm outline-none focus:ring-1 focus:ring-ring"
-                disabled={editPending}
-              />
+                disabled={editPending} />
             </div>
           </div>
           <Button type="submit" disabled={editPending || !editForm.name.trim()}>
@@ -656,15 +613,371 @@ function TabEntregables({
   )
 }
 
-// ─── Tab placeholder ─────────────────────────────────────────────────────────
+// ─── Tab: Facturación ─────────────────────────────────────────────────────────
 
-function TabProximamente({ label }: { label: string }) {
+function TabFacturacion({
+  detail, projectId, clientId, onGenerateInvoice,
+}: { detail: MilestoneDetail; projectId: string; clientId: string; onGenerateInvoice: () => Promise<void> }) {
+  const cur = detail.invoice_currency_code ?? detail.currency_code
+
+  if (!detail.invoice_id) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+        <div className="rounded-full bg-muted p-3">
+          <FileTextIcon className="size-5 text-muted-foreground" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-foreground">Sin factura asociada</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Genera una factura borrador para este hito cuando esté listo para facturar.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={onGenerateInvoice}>
+          <FileTextIcon className="size-3.5" />
+          Generar factura borrador
+        </Button>
+      </div>
+    )
+  }
+
+  const amountDue = detail.invoice_amount_due ?? 0
+  const amountPaid = detail.invoice_amount_paid ?? 0
+
   return (
-    <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
-      <p className="text-sm font-medium text-foreground">Próximamente: {label}</p>
-      <p className="text-xs text-muted-foreground max-w-xs">
-        Esta sección estará disponible en la siguiente fase.
-      </p>
+    <div className="flex flex-col gap-6 px-6 py-5">
+      {/* Invoice summary card */}
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b">
+          <div className="flex items-center gap-2">
+            <span className="font-mono font-semibold text-foreground">{detail.invoice_number}</span>
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${BILLING_STATUS_STYLE[detail.invoice_status ?? ""] ?? ""}`}>
+              {INVOICE_STATUS_LABEL[detail.invoice_status ?? ""] ?? detail.invoice_status}
+            </span>
+          </div>
+          <Button variant="ghost" size="sm" render={<Link href={`/facturas/${detail.invoice_id}`} />}>
+            <ExternalLinkIcon className="size-3.5" />
+            Ver factura
+          </Button>
+        </div>
+        <div className="grid grid-cols-2 gap-px bg-border">
+          {[
+            { label: "Emitida", value: fmtDate(detail.invoice_issue_date) },
+            { label: "Vencimiento", value: fmtDate(detail.invoice_due_date) },
+            { label: "Subtotal", value: fmt(detail.invoice_subtotal, cur) },
+            { label: "Impuestos", value: fmt(detail.invoice_tax_amount, cur) },
+            { label: "Total", value: fmt(detail.invoice_total, cur), bold: true },
+            {
+              label: "Pendiente",
+              value: fmt(amountDue, cur),
+              color: amountDue > 0 ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400",
+            },
+          ].map((cell) => (
+            <div key={cell.label} className="bg-card px-4 py-3">
+              <p className="text-xs text-muted-foreground mb-0.5">{cell.label}</p>
+              <p className={`text-sm font-mono ${cell.bold ? "font-semibold" : ""} ${cell.color ?? ""}`}>
+                {cell.value}
+              </p>
+            </div>
+          ))}
+        </div>
+        {amountPaid > 0 && (
+          <div className="px-4 py-2.5 border-t flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Cobrado</span>
+            <span className="font-mono font-semibold text-green-600 dark:text-green-400">{fmt(amountPaid, cur)}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Payments */}
+      <div>
+        <SectionTitle>Cobros recibidos ({detail.payments.length})</SectionTitle>
+        {detail.payments.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin cobros registrados para esta factura.</p>
+        ) : (
+          <div className="rounded-lg border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-xs text-muted-foreground">
+                  <th className="pb-2 pt-3 pl-4 text-left font-medium">Método</th>
+                  <th className="pb-2 pt-3 text-left font-medium">Referencia</th>
+                  <th className="pb-2 pt-3 text-left font-medium">Fecha</th>
+                  <th className="pb-2 pt-3 pr-4 text-right font-medium">Importe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detail.payments.map((p) => (
+                  <tr key={p.id} className="border-b last:border-0">
+                    <td className="pl-4 py-2.5 text-foreground">{METHOD_LABEL[p.method] ?? p.method}</td>
+                    <td className="py-2.5 text-muted-foreground text-xs font-mono">{p.reference ?? "—"}</td>
+                    <td className="py-2.5 text-muted-foreground whitespace-nowrap text-xs">{fmtDate(p.paid_at)}</td>
+                    <td className="pr-4 py-2.5 text-right font-mono font-semibold">{fmt(p.amount, p.currency_code)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {detail.payments.length > 1 && (
+                <tfoot>
+                  <tr className="border-t bg-muted/30">
+                    <td colSpan={3} className="py-2 pl-4 text-xs text-muted-foreground">Total cobrado</td>
+                    <td className="py-2 pr-4 text-right font-mono font-semibold text-green-600 dark:text-green-400">
+                      {fmt(detail.payments.reduce((s, p) => s + p.amount, 0), cur)}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Tab: Costes ──────────────────────────────────────────────────────────────
+
+function TabCostes({
+  detail, projectId, onRefresh,
+}: { detail: MilestoneDetail; projectId: string; onRefresh: () => Promise<void> }) {
+  const cur = detail.currency_code
+  const expensesTotal = detail.expenses.reduce((s, e) => s + e.amount, 0)
+  const totalCost = (detail.internal_cost ?? 0) + expensesTotal
+  const margin = (detail.internal_cost != null || expensesTotal > 0)
+    ? detail.amount - totalCost
+    : null
+  const marginPct = margin != null && detail.amount > 0
+    ? Math.round((margin / detail.amount) * 100)
+    : null
+
+  return (
+    <div className="flex flex-col gap-6 px-6 py-5">
+      {/* Summary tiles */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-lg border bg-card p-3">
+          <p className="text-xs text-muted-foreground mb-0.5">Importe</p>
+          <p className="font-mono font-semibold text-sm">{fmt(detail.amount, cur)}</p>
+        </div>
+        <div className="rounded-lg border bg-card p-3">
+          <p className="text-xs text-muted-foreground mb-0.5">Coste total</p>
+          <p className="font-mono text-sm">{totalCost > 0 ? fmt(totalCost, cur) : "—"}</p>
+        </div>
+        <div className="rounded-lg border bg-card p-3">
+          <p className="text-xs text-muted-foreground mb-0.5">Margen</p>
+          <p className={`font-mono font-semibold text-sm ${margin != null && margin >= 0 ? "text-green-600 dark:text-green-400" : margin != null ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
+            {margin != null ? fmt(margin, cur) : "—"}
+            {marginPct != null && <span className="text-xs font-normal ml-1">({marginPct}%)</span>}
+          </p>
+        </div>
+      </div>
+
+      {/* Desglose de costes */}
+      {(detail.internal_cost != null || expensesTotal > 0) && (
+        <div className="rounded-lg border bg-card divide-y text-sm">
+          {detail.internal_cost != null && (
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-muted-foreground">Coste interno</span>
+              <span className="font-mono">{fmt(detail.internal_cost, cur)}</span>
+            </div>
+          )}
+          {expensesTotal > 0 && (
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-muted-foreground">Gastos del hito</span>
+              <span className="font-mono">{fmt(expensesTotal, cur)}</span>
+            </div>
+          )}
+          {(detail.internal_cost != null && expensesTotal > 0) && (
+            <div className="flex items-center justify-between px-4 py-2.5 bg-muted/30">
+              <span className="text-xs text-muted-foreground font-medium">Total costes</span>
+              <span className="font-mono font-semibold text-sm">{fmt(totalCost, cur)}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Expenses table */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <SectionTitle>Gastos del hito ({detail.expenses.length})</SectionTitle>
+          <CostAddExpense
+            projectId={projectId}
+            milestoneId={detail.id}
+            onSuccess={onRefresh}
+          />
+        </div>
+        {detail.expenses.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin gastos registrados para este hito.</p>
+        ) : (
+          <div className="rounded-lg border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-xs text-muted-foreground">
+                  <th className="pb-2 pt-3 pl-4 text-left font-medium">Descripción</th>
+                  <th className="pb-2 pt-3 text-left font-medium">Cat.</th>
+                  <th className="pb-2 pt-3 text-left font-medium">Fecha</th>
+                  <th className="pb-2 pt-3 text-right font-medium">Importe</th>
+                  <th className="pb-2 pt-3 pr-4 w-8" />
+                </tr>
+              </thead>
+              <tbody>
+                {detail.expenses.map((e) => (
+                  <tr key={e.id} className="border-b last:border-0 group">
+                    <td className="pl-4 py-2.5 font-medium text-foreground max-w-[140px] truncate">
+                      {e.description}
+                      {e.notes && <span className="ml-1 text-xs text-muted-foreground font-normal">— {e.notes}</span>}
+                    </td>
+                    <td className="py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                      {CATEGORY_LABEL[e.category] ?? e.category}
+                    </td>
+                    <td className="py-2.5 text-xs text-muted-foreground whitespace-nowrap">
+                      {new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short" }).format(new Date(e.incurred_at))}
+                    </td>
+                    <td className="py-2.5 text-right font-mono">{fmt(e.amount, e.currency_code)}</td>
+                    <td className="py-2.5 pr-4 text-right">
+                      <CostExpenseActions expenseId={e.id} projectId={projectId} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              {detail.expenses.length > 1 && (
+                <tfoot>
+                  <tr className="border-t bg-muted/30">
+                    <td colSpan={3} className="py-2 pl-4 text-xs text-muted-foreground">Total</td>
+                    <td className="py-2 text-right font-mono font-semibold">{fmt(expensesTotal, cur)}</td>
+                    <td />
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Tab: Actividad ───────────────────────────────────────────────────────────
+
+type ActivityFilterId = "todos" | "estado" | "entregables" | "hito" | "facturacion"
+
+const ACTIVITY_FILTERS: { id: ActivityFilterId; label: string }[] = [
+  { id: "todos",       label: "Todos" },
+  { id: "estado",      label: "Estado" },
+  { id: "entregables", label: "Entregables" },
+  { id: "hito",        label: "Hito" },
+  { id: "facturacion", label: "Facturación" },
+]
+
+const ACTION_TO_FILTER: Record<string, ActivityFilterId> = {
+  work_status_changed:        "estado",
+  billing_status_changed:     "estado",
+  deliverable_created:        "entregables",
+  deliverable_updated:        "entregables",
+  deliverable_status_changed: "entregables",
+  deliverable_deleted:        "entregables",
+  milestone_updated:          "hito",
+  notes_updated:              "hito",
+  invoice_generated:          "facturacion",
+}
+
+function ActivityEntryIcon({ action }: { action: string }) {
+  if (action === "work_status_changed" || action === "billing_status_changed") {
+    return <RefreshCwIcon className="size-3.5 text-blue-500" />
+  }
+  if (action === "deliverable_created")        return <PlusCircleIcon className="size-3.5 text-green-500" />
+  if (action === "deliverable_updated")        return <PencilIcon className="size-3.5 text-amber-500" />
+  if (action === "deliverable_status_changed") return <CircleCheck className="size-3.5 text-violet-500" />
+  if (action === "deliverable_deleted")        return <Trash2Icon className="size-3.5 text-red-500" />
+  if (action === "milestone_updated")          return <PencilIcon className="size-3.5 text-foreground" />
+  if (action === "notes_updated")              return <FileTextIcon className="size-3.5 text-foreground" />
+  if (action === "invoice_generated")          return <FileTextIcon className="size-3.5 text-blue-500" />
+  return <ActivityIcon className="size-3.5 text-muted-foreground" />
+}
+
+function TabActividad({ detail }: { detail: MilestoneDetail }) {
+  const [activeFilter, setActiveFilter] = React.useState<ActivityFilterId>("todos")
+
+  const filtered = activeFilter === "todos"
+    ? detail.activity
+    : detail.activity.filter(a => (ACTION_TO_FILTER[a.action] ?? "hito") === activeFilter)
+
+  const countFor = (id: ActivityFilterId) =>
+    id === "todos"
+      ? detail.activity.length
+      : detail.activity.filter(a => (ACTION_TO_FILTER[a.action] ?? "hito") === id).length
+
+  return (
+    <div className="flex flex-col">
+      {/* Filter chips */}
+      <div className="flex gap-1.5 px-6 py-3 border-b overflow-x-auto">
+        {ACTIVITY_FILTERS.map((f) => {
+          const count = countFor(f.id)
+          if (f.id !== "todos" && count === 0) return null
+          return (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setActiveFilter(f.id)}
+              className={[
+                "shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                activeFilter === f.id
+                  ? "bg-foreground text-background"
+                  : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80",
+              ].join(" ")}
+            >
+              {f.label}
+              {f.id !== "todos" && (
+                <span className={`rounded-full px-1 text-[10px] font-semibold ${activeFilter === f.id ? "bg-background/20" : "bg-background"}`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Timeline */}
+      {detail.activity.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 px-6 py-16 text-center">
+          <div className="rounded-full bg-muted p-3">
+            <ActivityIcon className="size-5 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground">No hay actividad registrada para este hito.</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+          <p className="text-sm text-muted-foreground">Sin eventos en esta categoría.</p>
+        </div>
+      ) : (
+        <div className="px-6 py-5">
+          <div className="flex flex-col gap-0">
+            {filtered.map((a, i) => (
+              <div key={a.id} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="size-7 shrink-0 rounded-full bg-muted flex items-center justify-center">
+                    <ActivityEntryIcon action={a.action} />
+                  </div>
+                  {i < filtered.length - 1 && (
+                    <div className="w-px flex-1 bg-border/60 my-1" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 pb-4">
+                  <p className="text-sm text-foreground leading-snug">{a.summary}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {a.user_name && (
+                      <>
+                        <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-muted border text-[9px] font-semibold text-muted-foreground uppercase">
+                          {a.user_name.split(" ").map((w: string) => w[0]).slice(0, 2).join("")}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{a.user_name}</span>
+                        <span className="text-xs text-muted-foreground/50">·</span>
+                      </>
+                    )}
+                    <span className="text-xs text-muted-foreground">{fmtDateTime(a.created_at)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -758,10 +1071,7 @@ function MilestoneDetailSheet({ milestone, projectId, clientId }: Props) {
           {milestone.name}
         </SheetTrigger>
 
-        <SheetContent
-          side="right"
-          className="flex w-full flex-col gap-0 p-0 sm:max-w-xl overflow-hidden"
-        >
+        <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 overflow-hidden">
           {/* Header */}
           <div className="shrink-0 border-b px-6 py-4">
             <p className="mb-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -779,17 +1089,6 @@ function MilestoneDetailSheet({ milestone, projectId, clientId }: Props) {
                   </span>
                 </div>
               </div>
-              <SheetClose
-                render={
-                  <button
-                    type="button"
-                    className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                    aria-label="Cerrar"
-                  />
-                }
-              >
-                <XIcon className="size-4" />
-              </SheetClose>
             </div>
           </div>
 
@@ -797,17 +1096,13 @@ function MilestoneDetailSheet({ milestone, projectId, clientId }: Props) {
           <div className="shrink-0 border-b">
             <nav className="flex px-6 overflow-x-auto">
               {TABS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setActiveTab(t.id)}
+                <button key={t.id} type="button" onClick={() => setActiveTab(t.id)}
                   className={[
                     "shrink-0 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors whitespace-nowrap",
                     activeTab === t.id
                       ? "border-foreground text-foreground"
                       : "border-transparent text-muted-foreground hover:text-foreground",
-                  ].join(" ")}
-                >
+                  ].join(" ")}>
                   {t.label}
                 </button>
               ))}
@@ -828,9 +1123,18 @@ function MilestoneDetailSheet({ milestone, projectId, clientId }: Props) {
                 {activeTab === "entregables" && (
                   <TabEntregables detail={detail} projectId={projectId} onRefresh={handleRefresh} />
                 )}
-                {activeTab === "facturacion" && <TabProximamente label="Facturación" />}
-                {activeTab === "costes" && <TabProximamente label="Costes" />}
-                {activeTab === "actividad" && <TabProximamente label="Actividad" />}
+                {activeTab === "facturacion" && (
+                  <TabFacturacion
+                    detail={detail} projectId={projectId} clientId={clientId}
+                    onGenerateInvoice={handleGenerateInvoice}
+                  />
+                )}
+                {activeTab === "costes" && (
+                  <TabCostes detail={detail} projectId={projectId} onRefresh={handleRefresh} />
+                )}
+                {activeTab === "actividad" && (
+                  <TabActividad detail={detail} />
+                )}
               </>
             )}
           </div>
@@ -839,35 +1143,21 @@ function MilestoneDetailSheet({ milestone, projectId, clientId }: Props) {
           <div className="shrink-0 border-t px-6 py-4 flex items-center gap-2">
             <SheetClose
               render={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setTimeout(() => setEditOpen(true), 150)}
-                />
+                <Button variant="outline" size="sm"
+                  onClick={() => setTimeout(() => setEditOpen(true), 150)} />
               }
             >
               <PencilIcon className="size-3.5" />
               Editar hito
             </SheetClose>
 
-            {!milestone.invoice_id && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGenerateInvoice}
-                disabled={generating}
-              >
+            {!milestone.invoice_id ? (
+              <Button variant="outline" size="sm" onClick={handleGenerateInvoice} disabled={generating}>
                 <FileTextIcon className="size-3.5" />
                 {generating ? "Generando..." : "Crear factura"}
               </Button>
-            )}
-
-            {milestone.invoice_id && (
-              <Button
-                variant="outline"
-                size="sm"
-                render={<Link href={`/facturas/${milestone.invoice_id}`} />}
-              >
+            ) : (
+              <Button variant="outline" size="sm" render={<Link href={`/facturas/${milestone.invoice_id}`} />}>
                 <ExternalLinkIcon className="size-3.5" />
                 Ver factura
               </Button>
@@ -875,9 +1165,7 @@ function MilestoneDetailSheet({ milestone, projectId, clientId }: Props) {
 
             <DropdownMenu>
               <DropdownMenuTrigger
-                render={
-                  <Button variant="ghost" size="icon-sm" className="ml-auto" aria-label="Más acciones" />
-                }
+                render={<Button variant="ghost" size="icon-sm" className="ml-auto" aria-label="Más acciones" />}
               >
                 <MoreHorizontalIcon className="size-4" />
               </DropdownMenuTrigger>

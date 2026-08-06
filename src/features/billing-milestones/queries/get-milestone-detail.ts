@@ -22,6 +22,25 @@ export type MilestoneExpense = {
   notes: string | null
 }
 
+export type MilestonePayment = {
+  id: string
+  amount: number
+  currency_code: string
+  method: string
+  status: string
+  paid_at: string | null
+  reference: string | null
+}
+
+export type MilestoneActivity = {
+  id: string
+  action: string
+  summary: string
+  created_at: string
+  user_id: string | null
+  user_name: string | null
+}
+
 export type MilestoneDetail = {
   id: string
   name: string
@@ -55,8 +74,18 @@ export type MilestoneDetail = {
   invoice_id: string | null
   invoice_number: string | null
   invoice_status: string | null
+  invoice_issue_date: string | null
+  invoice_due_date: string | null
+  invoice_subtotal: number | null
+  invoice_tax_amount: number | null
+  invoice_total: number | null
+  invoice_amount_due: number | null
+  invoice_amount_paid: number | null
+  invoice_currency_code: string | null
   deliverables: MilestoneDeliverable[]
   expenses: MilestoneExpense[]
+  payments: MilestonePayment[]
+  activity: MilestoneActivity[]
 }
 
 export async function getMilestoneDetail(
@@ -65,7 +94,7 @@ export async function getMilestoneDetail(
 ): Promise<MilestoneDetail | null> {
   const supabase = await createClient()
 
-  const [milestoneRes, deliverablesRes, expensesRes] = await Promise.all([
+  const [milestoneRes, deliverablesRes, expensesRes, activityRes] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from("project_milestones")
@@ -77,7 +106,14 @@ export async function getMilestoneDetail(
         billing_interval, planned_date, planned_invoice_date, billed_at, completed_at,
         notes, internal_notes, sort_order,
         project_id, organization_id, created_at, updated_at,
-        invoice_milestone_links(invoice_id, invoices(invoice_number, status))
+        invoice_milestone_links(
+          invoice_id,
+          invoices(
+            invoice_number, status, issue_date, due_date,
+            subtotal, tax_amount, total, amount_due, amount_paid, currency_code,
+            payments(id, amount, currency_code, method, status, paid_at, reference)
+          )
+        )
       `)
       .eq("id", milestoneId)
       .eq("project_id", projectId)
@@ -98,12 +134,46 @@ export async function getMilestoneDetail(
       .eq("milestone_id", milestoneId)
       .is("deleted_at", null)
       .order("incurred_at", { ascending: false }),
+    supabase
+      .from("activity_logs")
+      .select("id, action, summary, created_at, user_id")
+      .eq("entity_type", "milestone")
+      .eq("entity_id", milestoneId)
+      .order("created_at", { ascending: false })
+      .limit(30),
   ])
 
   if (!milestoneRes.data) return null
 
+  // Fetch profile names for activity authors
+  const activityRows = activityRes.data ?? []
+  const userIds = [...new Set(activityRows.map((a: any) => a.user_id).filter(Boolean))] as string[]
+  const profileMap: Record<string, string> = {}
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, first_name, last_name")
+      .in("id", userIds)
+    for (const p of profiles ?? []) {
+      profileMap[p.id] =
+        p.full_name ||
+        [p.first_name, p.last_name].filter(Boolean).join(" ") ||
+        "Usuario"
+    }
+  }
+
   const m = milestoneRes.data
   const link = (m.invoice_milestone_links as any[])?.[0]
+  const invoice = (link?.invoices as any) ?? null
+  const payments: MilestonePayment[] = ((invoice?.payments ?? []) as any[]).map((p: any) => ({
+    id: p.id,
+    amount: Number(p.amount),
+    currency_code: p.currency_code,
+    method: p.method,
+    status: p.status,
+    paid_at: p.paid_at ?? null,
+    reference: p.reference ?? null,
+  }))
 
   return {
     id: m.id,
@@ -136,9 +206,26 @@ export async function getMilestoneDetail(
     created_at: m.created_at,
     updated_at: m.updated_at ?? null,
     invoice_id: link?.invoice_id ?? null,
-    invoice_number: (link?.invoices as any)?.invoice_number ?? null,
-    invoice_status: (link?.invoices as any)?.status ?? null,
+    invoice_number: invoice?.invoice_number ?? null,
+    invoice_status: invoice?.status ?? null,
+    invoice_issue_date: invoice?.issue_date ?? null,
+    invoice_due_date: invoice?.due_date ?? null,
+    invoice_subtotal: invoice?.subtotal != null ? Number(invoice.subtotal) : null,
+    invoice_tax_amount: invoice?.tax_amount != null ? Number(invoice.tax_amount) : null,
+    invoice_total: invoice?.total != null ? Number(invoice.total) : null,
+    invoice_amount_due: invoice?.amount_due != null ? Number(invoice.amount_due) : null,
+    invoice_amount_paid: invoice?.amount_paid != null ? Number(invoice.amount_paid) : null,
+    invoice_currency_code: invoice?.currency_code ?? null,
     deliverables: (deliverablesRes.data ?? []) as MilestoneDeliverable[],
     expenses: (expensesRes.data ?? []) as MilestoneExpense[],
+    payments,
+    activity: activityRows.map((a: any) => ({
+      id: a.id,
+      action: a.action,
+      summary: a.summary,
+      created_at: a.created_at,
+      user_id: a.user_id ?? null,
+      user_name: a.user_id ? (profileMap[a.user_id] ?? null) : null,
+    })),
   }
 }

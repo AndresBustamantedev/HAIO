@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentOrganization } from "@/lib/supabase/queries/organizations"
+import { logMilestoneActivity } from "@/features/billing-milestones/utils/log-milestone-activity"
 
 type Input = {
   name: string
@@ -23,6 +24,7 @@ export async function updateDeliverable(
   if (!organization) return { error: "No perteneces a ninguna organización." }
 
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const { error } = await (supabase as any)
     .from("milestone_deliverables")
@@ -37,6 +39,12 @@ export async function updateDeliverable(
     .eq("organization_id", organization.organizationId)
 
   if (error) return { error: error.message }
+
+  await logMilestoneActivity(
+    milestoneId, user?.id ?? null,
+    "deliverable_updated",
+    `Entregable actualizado: "${data.name.trim()}"`,
+  )
 
   revalidatePath(`/proyectos/${projectId}/hitos/${milestoneId}`)
   return { error: null }

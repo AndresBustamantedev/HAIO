@@ -28,7 +28,7 @@ const CATEGORIES = [
 
 const today = () => new Date().toISOString().slice(0, 10)
 
-export function CostAddExpense({ projectId, milestoneId }: { projectId: string; milestoneId?: string }) {
+export function CostAddExpense({ projectId, milestoneId, onSuccess }: { projectId: string; milestoneId?: string; onSuccess?: () => void }) {
   const [open, setOpen] = React.useState(false)
   const [pending, startTransition] = React.useTransition()
 
@@ -66,6 +66,7 @@ export function CostAddExpense({ projectId, milestoneId }: { projectId: string; 
       } else {
         toast.success("Gasto añadido.")
         reset()
+        onSuccess?.()
       }
     })
   }
