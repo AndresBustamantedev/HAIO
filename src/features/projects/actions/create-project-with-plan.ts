@@ -66,6 +66,9 @@ export async function createProjectWithPlan(
     metadata.payment_method = projectData.payment_method
   }
 
+  type ProjectType = (typeof PROJECT_TYPES)[number]
+  type ProjectStatus = (typeof PROJECT_STATUSES)[number]
+
   const { data: projectRow, error: projectError } = await supabase
     .from("projects")
     .insert({
@@ -73,14 +76,15 @@ export async function createProjectWithPlan(
       client_id: projectData.client_id,
       name: projectData.name.trim(),
       slug: slugify(projectData.name),
-      type: projectData.type,
-      status: projectData.status,
+      type: projectData.type as ProjectType,
+      status: projectData.status as ProjectStatus,
       description: projectData.description?.trim() || null,
       budget: projectData.budget ?? null,
       currency_code: projectData.currency_code,
       start_date: projectData.start_date || null,
       target_date: projectData.target_date || null,
-      metadata: Object.keys(metadata).length ? metadata : undefined,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      metadata: Object.keys(metadata).length ? metadata as any : undefined,
       created_by: user?.id ?? null,
       updated_by: user?.id ?? null,
     })

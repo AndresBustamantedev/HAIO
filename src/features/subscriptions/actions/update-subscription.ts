@@ -15,7 +15,8 @@ export async function updateSubscription(subscriptionId: string, input: Subscrip
 
   const supabase = await createSupabaseServerClient()
 
-  const { error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
     .from("subscriptions")
     .update({
       client_id: parsed.data.client_id,

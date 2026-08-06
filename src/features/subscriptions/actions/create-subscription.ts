@@ -21,7 +21,8 @@ export async function createSubscription(input: SubscriptionInput): Promise<Acti
 
   const supabase = await createSupabaseServerClient()
 
-  const { error } = await supabase.from("subscriptions").insert({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from("subscriptions").insert({
     organization_id: organization.organizationId,
     client_id: parsed.data.client_id,
     service_id: parsed.data.service_id,

@@ -18,7 +18,8 @@ export type ProjectSubscription = {
 export async function getProjectSubscriptions(projectId: string): Promise<ProjectSubscription[]> {
   const supabase = await createClient()
 
-  const { data } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any)
     .from("subscriptions")
     .select("id, client_id, service_id, project_id, status, billing_interval, amount, current_period_start, current_period_end, cancel_at, services(name)")
     .eq("project_id", projectId)
